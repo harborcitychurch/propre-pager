@@ -1,4 +1,4 @@
-//ppapi.js
+//propresenterapi.js
 
 // This script is designed to be used with ProPresenter 7, API version 1
 

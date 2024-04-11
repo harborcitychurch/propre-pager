@@ -1,0 +1,50 @@
+body {
+    font-family: 'Courier New', Courier, monospace;
+    margin: 0;
+    padding: 0;
+    background-color: #f1f1f1;
+}
+
+div.toast {
+    position: fixed; 
+    z-index: 1; 
+    left: 50%; 
+    top: 50%; 
+    transform: translate(-50%, -50%); 
+    background-color: #4CAF50; 
+    color: white; 
+    padding: 16px; 
+    border-radius: 4px;
+    animation: fadeOut 2s forwards;
+}
+
+div.toast.hidden {
+    display: none;
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+    
+}
+
+div.toast.show {
+    visibility: visible;
+    animation: fadeInSlideUp 1s forwards;
+}
+
+@keyframes fadeInSlideUp {
+    0% {
+        transform: translate(-50%, 100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+    
+}

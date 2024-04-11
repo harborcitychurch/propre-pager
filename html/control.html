@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/scripts/propresenterapi.js"></script>
+        <script src="/scripts/common.js"></script>
+        <script src="/scripts/control.js"></script>
+        <link rel="stylesheet" type="text/css" href="/styles/common.css">
+        <link rel="stylesheet" type="text/css" href="/styles/control.css">
+    </head>
+    <body>
+        <div id="toast" class="toast hidden" style="opacity: 0;">
+            <span id="toast-message"></span>
+        </div>
+
+        <h2>Parent Paging System Control</h2>
+        <p>ProPresenter Address: <input type="text" id="propresenter_address" placeholder="ProPresenter Address"></p>
+        <div id="status_bar">
+            <div id="clock"></div>
+            <div id="connection_status" class="offline"></div>
+        </div>
+        
+        <div id="pager_list">
+        <table name="pager_list">
+        <tr>
+            <th>Child #</th>
+            <th>Room</th>
+            <th>Min</th>
+            <th></th>
+        </tr>
+        </table>
+        </div>
+        <div id="active_requests">
+        <h3>Active Requests</h3>
+        <ul id="active_requests"></ul>
+        </div>
+        
+        
+    </body>
+</html>

@@ -3,170 +3,277 @@ import requests
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 from datetime import datetime
+import sqlite3
+import uuid
+import os
+import json
+
+# USER CONFIGURATION #
+ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
+## END OF USER CONFIGURATION ##
+
+STATUS_CODES = ['queued', 'active', 'complete', 'failed', 'cancelled']
+
+def initialize_database():
+    # Connect to the SQLite database (or create it)
+    db = sqlite3.connect('pager.db')
+
+    # Create a cursor object
+    cursor = db.cursor()
+
+    # Create table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pager_list(
+            key TEXT PRIMARY KEY,
+            timestamp TEXT,
+            child_number INTEGER,
+            room TEXT,
+            status TEXT,
+            page_time TEXT
+        )
+    ''')
+
+    # Commit the transaction
+    db.commit()
+
+    # Close the connection
+    db.close()
 
 class SimpleServer(BaseHTTPRequestHandler):
     propresenter_address = ''
 
     def do_GET(self):
-        if self.path == '/':
+        if self.path == '/api/now':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b'''
-                <html>
-                <body>
-                <h2>Child Information</h2>
-                <form method="POST" action="/submit">
-                Child Number: <input type="text" name="child_number" pattern="\d{3}" required><br>
-                Room:
-                <select name="room">
-                <option value="Nursery">Nursery</option>
-                <option value="2's &amp; 3's">2's &amp; 3's</option>
-                <option value="4-K">4-K</option>
-                <option value="1st-5th">1st-5th</option>
-                </select><br>
-                <input type="submit" value="Submit">
-                </form>
-                <a href="/list">View Paging Requests</a>
-                </body>
-                </html>
-            ''')
-        elif self.path == '/list':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(b'''
-                <html>
-                <head>
-                <script>
-                function updateTime() {
-                    var clock = document.getElementById("clock");
-                    var now = new Date();
-                    clock.textContent = now.toLocaleString();
-                }
-                setInterval(updateTime, 1000);
-                </script>
-                </head>
-                <body>
-                <h2>Paging Requests</h2>
-                <p>ProPresenter Address: <input type="text" id="propresenter_address" placeholder="ProPresenter Address"></p>
-                <p id="clock"></p>
-                <table>
-                <tr>
-                    <th>Child Number</th>
-                    <th>Room</th>
-                    <th>Timestamp</th>
-                    <th>Age (Minutes)</th>
-                    <th>Action</th>
-                </tr>
-            ''')
 
-            if 'propresenter_address' in parse_qs(urlparse(self.path).query):
-                self.propresenter_address = parse_qs(urlparse(self.path).query)['propresenter_address'][0]
+            #get current time from database
+            conn = sqlite3.connect('pager.db')
+            c = conn.cursor()
+            c.execute("SELECT datetime('now')")
+            row = c.fetchone()
+            conn.close()
+
+            self.wfile.write(row[0].encode('utf-8'))
+
+        elif self.path == '/api/list':
             
-            with open('child_info.csv', 'r') as file:
-                reader = csv.reader(file)
-                rows = list(reader)
-                for row in rows:
-                    child_number = row[0]
-                    room = row[1]
-                    timestamp = row[2]
-                    age = int((datetime.now() - datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')).total_seconds() / 60)
-                    self.wfile.write(f'<tr><td>{child_number}</td><td>{room}</td><td>{timestamp}</td><td>{age}</td>'.encode('utf-8'))
-                    self.wfile.write(b'''
-                        <td>
-                            <button onclick="sendToProPresenter(this)">Send to ProPresenter</button>
-                        </td>
-                        </tr>
-                    ''')
+            conn = sqlite3.connect('pager.db')
+            c = conn.cursor()
+            c.execute("SELECT * FROM pager_list WHERE timestamp >= datetime('now', '-12 hour')")
+            rows = c.fetchall()
+            conn.close()
 
-            self.wfile.write(b'''
-                </table>
-                <script>
-                function sendToProPresenter(button) {
-                    var row = button.parentNode.parentNode;
-                    var childNumber = row.getElementsByTagName("td")[0].innerText;
-                    var room = row.getElementsByTagName("td")[1].innerText;
-                    var propresenterAddress = document.getElementById("propresenter_address").value;
-                    
-                    var url = 'http://' + propresenterAddress + '/v1/message/CityKidsPager/trigger';
-                    var payload = [
-                        {
-                            "name": "Child#",
-                            "text": {
-                                "text": childNumber
-                            }
-                        },
-                        {
-                            "name": "Room",
-                            "text": {
-                                "text": room
-                            }
-                        }
-                    ];
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
 
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("POST", url, true);
-                    xhr.setRequestHeader("Content-Type", "application/json");
-                    xhr.send(JSON.stringify(payload));
+            #send rows as JSON
+            self.wfile.write(b'[')
 
-                    xhr.onreadystatechange = function () {
-                        if (xhr.readyState === XMLHttpRequest.DONE) {
-                            if (xhr.status === 204) {
-                                alert("Message sent to ProPresenter successfully.");
-                                row.parentNode.removeChild(row);
-                            } else {
-                                alert("Error sending message to ProPresenter.");
-                            }
-                        }
-                    };
-                }
-                </script>
-                </body>
-                </html>
-            ''')
+            for row in rows:
+                key = row[0]
+                timestamp = row[1]
+                child_number = row[2]
+                room = row[3]
+                status = row[4]
+                try:
+                    page_time = row[5]
+                except:
+                    page_time = ''
+                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "key": "{key}", "page_time": "{page_time}"}}'.encode('utf-8'))
+                if row != rows[-1]:
+                    self.wfile.write(b',')
+
+            self.wfile.write(b']')
+
+        elif self.path == '/api/rooms':
+            room_json = b'['
+            for i, room in enumerate(ROOMS):
+                room_json += f'{{"id":{i+1},"name":"{room}"}}'.encode('utf-8')
+                if i != len(ROOMS) - 1:
+                    room_json += b','
+            room_json += b']'
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(room_json)
+
+        elif self.path == '/api/history':
+            # get date range from query string
+            query = urlparse(self.path).query
+            query_components = parse_qs(query)
+            if 'start' not in query_components:
+                start_date = '1990-01-01 00:00:00'
+            else:
+                try:
+                    start_date = datetime.strftime(query_components['start'][0], '%Y-%m-%d') + ' 00:00:00'
+                except:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b'400 Bad Request')
+                    return
+                
+            if 'end' not in query_components:
+                end_date = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+            else:
+                try:
+                    end_date = datetime.strftime(query_components['end'][0], '%Y-%m-%d') + ' 23:59:59'
+                except:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b'400 Bad Request')
+                    return
+
+            #get requests within date range
+            conn = sqlite3.connect('pager.db')
+            c = conn.cursor()
+            c.execute("SELECT * FROM pager_list WHERE timestamp BETWEEN ? AND ?", (start_date, end_date))
+            rows = c.fetchall()
+            conn.close()
+
+            #send rows as JSON
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'[')
+
+            for row in rows:
+                key = row[0]
+                timestamp = row[1]
+                child_number = row[2]
+                room = row[3]
+                status = row[4]
+                try:
+                    page_time = row[5]
+                except:
+                    page_time = ''
+                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "page_time": "{page_time}" "key": "{key}"}}'.encode('utf-8'))
+                if row != rows[-1]:
+                    self.wfile.write(b',')
+            self.wfile.write(b']')
+
+        #if not in /api, attempt to serve file. Prevent upwards traversal
+        elif not self.path.startswith('/api/'):
+            try:
+                if self.path == '/':
+                    self.path = '/index.html'
+                if self.path == '/control/':
+                    self.path = '/control.html'
+
+                #this prevents directory traversal outside of the html directory
+                if os.path.abspath(f'html{self.path}').startswith(os.path.abspath('html')):
+                    with open(f'html{self.path}', 'rb') as f:
+                        self.send_response(200)
+                        self.end_headers()
+                        self.wfile.write(f.read())
+                else:
+                    self.send_response(403)
+                    self.end_headers()
+                    self.wfile.write(b'403 Forbidden')
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b'404 Not Found')
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b'404 Not Found')
 
     def do_POST(self):
-        if self.path == '/submit':
+        if self.path == '/api/submit':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
-            params = parse_qs(post_data)
-            child_number = params['child_number'][0]
-            room = params['room'][0]
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            data = json.loads(post_data)
 
-            # Write data to CSV file
-            data = [child_number, room, timestamp]
-            with open('child_info.csv', 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(data)
+            print (data)
 
-            self.wfile.write(b'''
-                <html>
-                <body>
-                <h2>Success</h2>
-                <p>Data submitted successfully!</p>
-                <a href="/">Back</a>
-                </body>
-                </html>
-            ''')
+            child_number = data['child_number']
+            room = data['room']
+            #get timestamp from db
+            conn = sqlite3.connect('pager.db')
+            c = conn.cursor()
+            c.execute("SELECT datetime('now')")
+            row = c.fetchone()
+            conn.close()
+            timestamp = row[0]
+            key = str(uuid.uuid4())
+
+            print(f'Child Number: {child_number}')
+
+            #check valid child_number
+            if not len(child_number) == 3 or not str(child_number).isdigit():
+                self.wfile.write(b'Invalid child number. Must be a 3-digit number.')
+                return
+            #sanitize room
+            if room not in ROOMS:
+                self.wfile.write(f'Invalid room. Valid rooms are {ROOMS}.'.encode('utf-8'))
+                return
+
+            # Write data to SQLite database
+            conn = sqlite3.connect('pager.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO pager_list VALUES (?, ?, ?, ?, ?)",
+                        (key, timestamp, child_number, room, 'queued'))
+            conn.commit()
+            conn.close()
+
+            self.wfile.write(b'Page has been queued successfully!')
+
+        elif self.path == '/api/report':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode('utf-8')
+                params = parse_qs(post_data)
+                key = params['key']
+                status = params['status']
+                
+                #sanitize status and uuid
+                if status not in STATUS_CODES:
+                    self.wfile.write(f'Invalid status. Valid codes are {STATUS_CODES}')
+                    return
+                if not uuid.UUID(key):
+                    self.wfile.write(b'Invalid Item Key. Must be a valid UUID.')
+                    return
+                
+                # Update data in SQLite database
+                conn = sqlite3.connect('pager.db')
+                c = conn.cursor()
+                try:
+                    c.execute("UPDATE pager_list SET status = ? WHERE key = ?", (status, key))
+                    conn.commit()
+                    conn.close()
+                    self.wfile.write(b'Status updated successfully!')
+                except sqlite3.Error as e:
+                    self.wfile.write(f'''
+                        <html>
+                            <body>
+                                <h2>Error</h2>
+                                <p>{e}</p>
+                                <a href="/">Back</a>
+                            </body>
+                        </html>
+                    ''')
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b'404 Not Found')
+
+    
 
 def run_server():
     host = 'localhost'
     port = 8000
     server_address = (host, port)
     httpd = HTTPServer(server_address, SimpleServer)
+    initialize_database()
     print(f'Starting server on {host}:{port}...')
     httpd.serve_forever()
 

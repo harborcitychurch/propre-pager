@@ -1,0 +1,31 @@
+#clock {
+    display: flex;
+    align-items: center;
+    width: auto;
+    vertical-align: top;
+}
+
+#pager_list #active_requests {
+    display: inline-block;
+    width: auto;
+    vertical-align: top;
+    
+}
+
+#connection_status {
+    display: flex;
+    align-items: center;
+    margin: 5px;
+    width: auto; 
+    color: white; 
+    border-radius: 5%;
+    
+}
+
+#connection_status.offline {
+    background-color: red; 
+}
+
+#connection_status.online {
+    background-color: green;
+}
