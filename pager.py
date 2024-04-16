@@ -41,8 +41,17 @@ def initialize_database():
 
 class SimpleServer(BaseHTTPRequestHandler):
     propresenter_address = ''
+    query = ''
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
 
     def do_GET(self):
+        query = urlparse(self.path).query
+        self.path = self.path.split('?')[0]
+
         if self.path == '/api/now':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
@@ -103,14 +112,15 @@ class SimpleServer(BaseHTTPRequestHandler):
 
         elif self.path == '/api/history':
             # get date range from query string
-            query = urlparse(self.path).query
             query_components = parse_qs(query)
             if 'start' not in query_components:
                 start_date = '1990-01-01 00:00:00'
             else:
                 try:
-                    start_date = datetime.strftime(query_components['start'][0], '%Y-%m-%d') + ' 00:00:00'
-                except:
+                    start_date = query_components['start'][0] + ' 00:00:00'
+                except Exception as e:
+                    print('Invalid start date')
+                    print(e)
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b'400 Bad Request')
@@ -120,7 +130,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                 end_date = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
             else:
                 try:
-                    end_date = datetime.strftime(query_components['end'][0], '%Y-%m-%d') + ' 23:59:59'
+                    end_date = query_components['end'][0] + ' 23:59:59'
                 except:
                     self.send_response(400)
                     self.end_headers()
@@ -197,11 +207,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             room = data['room']
             #get timestamp from db
             conn = sqlite3.connect('pager.db')
-            c = conn.cursor()
-            c.execute("SELECT datetime('now')")
-            row = c.fetchone()
-            conn.close()
-            timestamp = row[0]
+            timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
             key = str(uuid.uuid4())
 
             print(f'Child Number: {child_number}')
