@@ -11,3 +11,7 @@
 
 #config files
 *.config
+
+#os stuff
+.DS_Store
+Thumbs.db
