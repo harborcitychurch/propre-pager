@@ -2,7 +2,7 @@ import csv
 import requests
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
-from datetime import datetime
+from datetime import datetime, UTC
 import sqlite3
 import uuid
 import os
@@ -12,7 +12,7 @@ import json
 ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
 ## END OF USER CONFIGURATION ##
 
-STATUS_CODES = ['queued', 'active', 'complete', 'failed', 'cancelled']
+STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled']
 
 def initialize_database():
     # Connect to the SQLite database (or create it)
@@ -64,7 +64,19 @@ class SimpleServer(BaseHTTPRequestHandler):
             row = c.fetchone()
             conn.close()
 
-            self.wfile.write(row[0].encode('utf-8'))
+            # Create a dictionary with the current server time and database time
+            data = {
+                'server_time': datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S'),
+                'db_time': row[0]
+            }
+
+            # Convert the dictionary to a JSON string
+            json_data = json.dumps(data)
+
+            # Write the JSON string to the response
+            self.wfile.write(json_data.encode('utf-8'))
+
+            self.wfile.close()
 
         elif self.path == '/api/list':
             
@@ -127,7 +139,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                     return
                 
             if 'end' not in query_components:
-                end_date = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+                end_date = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
             else:
                 try:
                     end_date = query_components['end'][0] + ' 23:59:59'
@@ -194,56 +206,63 @@ class SimpleServer(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == '/api/submit':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            data = json.loads(post_data)
-
-            print (data)
-
-            child_number = data['child_number']
-            room = data['room']
-            #get timestamp from db
-            conn = sqlite3.connect('pager.db')
-            timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
-            key = str(uuid.uuid4())
-
-            print(f'Child Number: {child_number}')
-
             #check valid child_number
             if not len(child_number) == 3 or not str(child_number).isdigit():
+                self.send_response(400)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
                 self.wfile.write(b'Invalid child number. Must be a 3-digit number.')
                 return
             #sanitize room
-            if room not in ROOMS:
+            elif room not in ROOMS:
+                self.send_response(400)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
                 self.wfile.write(f'Invalid room. Valid rooms are {ROOMS}.'.encode('utf-8'))
                 return
-
-            # Write data to SQLite database
-            conn = sqlite3.connect('pager.db')
-            c = conn.cursor()
-            c.execute("INSERT INTO pager_list VALUES (?, ?, ?, ?, ?)",
-                        (key, timestamp, child_number, room, 'queued'))
-            conn.commit()
-            conn.close()
-
-            self.wfile.write(b'Page has been queued successfully!')
-
-        elif self.path == '/api/report':
+            else:
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode('utf-8')
-                params = parse_qs(post_data)
-                key = params['key']
-                status = params['status']
+                data = json.loads(post_data)
+
+                child_number = data['child_number']
+                room = data['room']
+                #get timestamp from db
+                conn = sqlite3.connect('pager.db')
+                timestamp = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
+                key = str(uuid.uuid4())
+
+                # Write data to SQLite database
+                conn = sqlite3.connect('pager.db')
+                c = conn.cursor()
+                c.execute("INSERT INTO pager_list VALUES (?, ?, ?, ?, ?)",
+                            (key, timestamp, child_number, room, 'queued'))
+                conn.commit()
+                conn.close()
+
+                self.wfile.write(b'Page has been queued successfully!')
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'404 Not Found')
+
+    def do_PUT(self):
+        if self.path == '/api/report':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                content_length = int(self.headers['Content-Length'])
+                put_data = self.rfile.read(content_length).decode('utf-8')
+                data = json.loads(put_data)
+                key = data['key']
+                status = data['status']
                 
                 #sanitize status and uuid
                 if status not in STATUS_CODES:
-                    self.wfile.write(f'Invalid status. Valid codes are {STATUS_CODES}')
+                    self.wfile.write(f'Invalid status. Valid codes are {STATUS_CODES}'.encode('utf-8'))
                     return
                 if not uuid.UUID(key):
                     self.wfile.write(b'Invalid Item Key. Must be a valid UUID.')
@@ -261,9 +280,9 @@ class SimpleServer(BaseHTTPRequestHandler):
                     self.wfile.write(f'''
                         <html>
                             <body>
+                                <a href="/">Back</a>
                                 <h2>Error</h2>
                                 <p>{e}</p>
-                                <a href="/">Back</a>
                             </body>
                         </html>
                     ''')

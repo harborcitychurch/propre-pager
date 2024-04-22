@@ -1,0 +1,97 @@
+body {
+    text-align: center;
+    animation: fadeIn 1s;
+}
+
+#logo {
+    margin: 100px auto 50px auto;
+    width: 100%;
+    max-width: 300px;
+}
+
+@keyframes fadeIn {
+    0% {opacity: 0;}
+    100% {opacity: 1;}
+}
+
+#logo img {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+
+@keyframes formFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    50% {
+        transform: translateY(25px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+form {
+    animation: formFadeIn 1s ease-in forwards;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 50%;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+    background-color: #fff;
+}
+
+form input, form button, form select{
+    text-align: center;
+    width: 75%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+form select {
+    font-size: x-large;
+}
+
+form input#child_number {
+    width: 50%;
+    font-size: xx-large;
+}
+
+form button {
+    background-color: #007BFF;
+    color: #fff;
+    cursor: pointer;
+    font-size: x-large;
+    
+}
+
+form button:hover {
+    background-color: #0056b3;
+}
+
+@media screen and (max-width: 600px) {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    #logo {
+        margin: 50px auto 25px auto;
+    }
+    form {
+        width: 90%;
+    }
+    form input, form button, form select {
+        width: 75%;
+    }
+}

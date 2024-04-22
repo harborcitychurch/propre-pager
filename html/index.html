@@ -1,34 +1,36 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>City Kids Pager System</title>
-        <link rel="stylesheet" type="text/css" href="styles/common.css">
-        <link rel="stylesheet" type="text/css" href="styles/index.css">
-        <script src="scripts/common.js"></script>
-        <script src="scripts/index.js"></script>
-        <script src="scripts/propresenterapi.js"></script>
 
-        <script>
-            
-        </script>
-    </head>
-    <body>
+<head>
+    <title>City Kids Pager System</title>
+    <link rel="stylesheet" type="text/css" href="styles/common.css">
+    <link rel="stylesheet" type="text/css" href="styles/index.css">
+    <script src="scripts/common.js"></script>
+    <script src="scripts/index.js"></script>
+    <script src="scripts/propresenterapi.js"></script>
+</head>
+
+<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <div id="logo"><img src="/header_logo.png"></div>
+    <div id="content">
         <h2>Parent Paging System</h2>
+        <div id="clock"></div>
         <form id="pager_form">
-        Child Number: <input type="text" name="child_number" pattern="\d{3}" title="Child number must be 3 digits" required autocomplete="off"><br>
-        Room:
-        <select name="room">
-        <script>
-            
-        </script>
-        
-        </select><br>
-        <input type="submit" value="Submit">
+            <label for="room">Room:</label><select id="room" name="room"></select><br>
+            <label for="child_number">Child Number:</label><input type="text" id="child_number" name="child_number"
+                placeholder="000" pattern="[0-9]{3}" title="Child number must be 3 digits" required
+                autocomplete="off"><br>
+            <button type="submit" value="Submit">Submit</button>
         </form>
-        <a href="/control/">View Paging Requests</a>
-
+        <div id="footer">
+            <p>&copy; 2024 Harbor City Church</p>
+            <p><a href="https://github.com/bluedog8050/ProPrePager">Open Source</a></p>
+        </div>
         <div id="toast" class="toast hidden">
             <span id="toast-message">Welcome!</span>
         </div>
-    </body>
+    </div>
+</body>
+
 </html>

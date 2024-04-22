@@ -5,6 +5,20 @@ body {
     background-color: #f1f1f1;
 }
 
+#footer {
+    text-align: center;
+    padding: 10px;
+    position: fixed;
+    margin-top: 50px;
+    background-color: #333;
+    color: white;
+    bottom: 0;
+    width: 100%;
+    a {
+        color: white;
+    }
+}
+
 div.toast {
     position: fixed; 
     z-index: 1; 
@@ -18,7 +32,7 @@ div.toast {
     animation: fadeOut 2s forwards;
 }
 
-div.toast.hidden {
+.hidden {
     display: none;
 }
 

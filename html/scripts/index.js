@@ -4,6 +4,24 @@ window.onload = function() {
     form.addEventListener('submit', e => submitPage(e));
 }
 
+//recall room index from local storage
+function recallRoom() {
+    var room = localStorage.getItem('room');
+    if (room) {
+        document.getElementById('room').value = room;
+    }
+}
+
+//store room index in local storage
+function storeRoom() {
+    var room = document.getElementById('room').value;
+    var storedRoom = localStorage.getItem('room');
+    if (room === storedRoom) {
+        return;
+    }
+    localStorage.setItem('room', room);
+}
+
 function updateRooms() {
     fetch('/api/rooms')
         .then(response => response.json())
@@ -16,6 +34,7 @@ function updateRooms() {
                 option.textContent = room.name;
                 select.appendChild(option);
             });
+            recallRoom();
         });
 }
 
@@ -32,7 +51,13 @@ function submitPage(e) {
         })
         
     })
-    .then(response => response.text())
+    .then(response => {
+        if (response.status === 200) {
+            form.elements.child_number.value = '';
+            storeRoom();
+        }
+        return response.text();
+    })
     .then(data => {
         toast(data);
     });

@@ -1,2 +1,13 @@
+#data files
 *.csv
 *.db
+
+#images
+*.jpg
+*.png
+
+#logs
+*.log
+
+#config files
+*.config
