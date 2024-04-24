@@ -15,3 +15,6 @@
 #os stuff
 .DS_Store
 Thumbs.db
+html/.DS_Store
+scripts/.DS_Store
+img/.DS_Store
