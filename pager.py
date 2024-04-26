@@ -1,5 +1,11 @@
-import csv
-import requests
+#! /usr/bin/env python3
+
+# USER CONFIGURATION #
+SERVERHOST = 'localhost'
+SERVERPORT = 8000
+ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
+## END OF USER CONFIGURATION ##
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 from datetime import datetime, UTC
@@ -7,10 +13,6 @@ import sqlite3
 import uuid
 import os
 import json
-
-# USER CONFIGURATION #
-ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
-## END OF USER CONFIGURATION ##
 
 STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled']
 
@@ -296,12 +298,10 @@ class SimpleServer(BaseHTTPRequestHandler):
     
 
 def run_server():
-    host = 'localhost'
-    port = 8000
-    server_address = (host, port)
+    server_address = (SERVERHOST, SERVERPORT)
     httpd = HTTPServer(server_address, SimpleServer)
     initialize_database()
-    print(f'Starting server on {host}:{port}...')
+    print(f'Starting server on {SERVERHOST}:{SERVERPORT}...')
     httpd.serve_forever()
 
 run_server()

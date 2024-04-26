@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title>Pager Dispatch</title>
         <script src="/scripts/propresenterapi.js"></script>
         <script src="/scripts/common.js"></script>
         <script src="/scripts/control.js"></script>
+
         <link rel="stylesheet" type="text/css" href="/styles/common.css">
         <link rel="stylesheet" type="text/css" href="/styles/control.css">
-        <title>City Kids Pager Dispatch</title>
+
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -19,6 +21,15 @@
         <audio id="notify_sound" src="/notify.mp3" preload="auto"></audio>
         <div id="header">
             <div id="logo"><img src="/header_logo.png"></div>
+            <div id="pager_form_container">
+                <form id="pager_form">
+                    <label for="child_number">Child:</label>
+                    <input type="text" id="child_number" name="child_number" placeholder="000" pattern="[0-9]{3}" title="Child number must be 3 digits" required autocomplete="off"><br>
+                    <label for="room">Room:</label>
+                    <select id="room" name="room"></select><br>
+                    <button type="submit" value="Submit">Queue</button>
+                </form>
+            </div>
         </div>
         <div id="clock"></div>
         <div id="toast" class="toast hidden">
@@ -45,16 +56,6 @@
         </div>
         <div id="status_bar">
             <div id="connection_status" class="offline"></div>
-        </div>
-
-        <div id="pager_form_container">
-            <form id="pager_form">
-                <label for="child_number">Child:</label>
-                <input type="text" id="child_number" name="child_number" placeholder="000" pattern="[0-9]{3}" title="Child number must be 3 digits" required autocomplete="off"><br>
-                <label for="room">Room:</label>
-                <select id="room" name="room"></select><br>
-                <button type="submit" value="Submit">Queue</button>
-            </form>
         </div>
         
         <div class="table_container">

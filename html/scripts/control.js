@@ -344,8 +344,14 @@ function updateTables() {
             var row = document.createElement('tr');
             var date = new Date(p.timestamp);
             var hours = date.getHours();
+            if(date.getTimezoneOffset() != 0) {
+                hours = (hours - date.getTimezoneOffset() / 60) % 24;
+            }
+            var ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
             var minutes = date.getMinutes();
-            var formattedTime = (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes;
+            var formattedTime = (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes + ' ' + ampm;
 
             row.innerHTML = '<td>' + p.child_number + '</td>' +
             '<td>' + p.room + '</td>' +
@@ -404,7 +410,7 @@ function sendToProPresenter(id) {
     var page = pageBucket[id];
 
     var propresenterAddress = document.getElementById("propresenter_address").value + ':' + document.getElementById("propresenter_port").value;
-    var url = 'http://' + propresenterAddress + '/v1/message/CityKidsPager/trigger';
+    var url = 'http://' + propresenterAddress + '/v1/message/parent-pager/trigger';
     var payload = [
         {
             "name": "Child#",
