@@ -7,44 +7,88 @@
         <link rel="stylesheet" type="text/css" href="/styles/common.css">
         <link rel="stylesheet" type="text/css" href="/styles/control.css">
         <title>City Kids Pager Dispatch</title>
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+        <link rel="manifest" href="/site.webmanifest">
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#ff9800">
+        <meta name="msapplication-TileColor" content="#da532c">
+        <meta name="theme-color" content="#ffffff">
     </head>
     <body>
         <audio id="notify_sound" src="/notify.mp3" preload="auto"></audio>
+        <div id="header">
+            <div id="logo"><img src="/header_logo.png"></div>
+        </div>
         <div id="clock"></div>
-        <div id="toast" class="toast hidden" style="opacity: 0;">
+        <div id="toast" class="toast hidden">
             <span id="toast-message"></span>
         </div>
 
         <h2>Parent Paging System Control</h2>
         
-        <div id="settings-container">
-            <div class="settings"> ProPresenter Address: <input type="text" id="propresenter_address" placeholder="ProPresenter Address"> Port: <input type="text" id="propresenter_port" value="1025" placeholder="1025"></div>
-            <div class="settings hidden"></div><button id="auto_page_button" onclick="toggleAutoPage()" class="inactive hidden">Auto Page: OFF</button><div id="auto_page_indicator" class="hidden"></div> </div>
-            <div class="settings">Switch Interval: <input id="interval_int" type="number" min="1" max="30" value="5" required> seconds (When multiple pages are active)</div>
+        <div id="settings_container">
+            <h3>ProPresenter Settings</h3>
+            <div class="settings"> 
+                ProPresenter Address: 
+                <input type="text" id="propresenter_address" placeholder="ProPresenter Address"> 
+                &nbsp;&nbsp;Port: 
+                <input type="text" id="propresenter_port" value="1025" placeholder="1025">
+            </div>
+            <div class="settings">
+                Switch Interval:&nbsp;<input id="interval_int" type="number" min="1" max="30" value="5" required> seconds (When multiple pages are active)
+            </div>
+            <div class="hidden">
+                <button id="auto_page_button" onclick="toggleAutoPage()" class="inactive hidden">Auto Page: OFF</button>
+                <div id="auto_page_indicator" class="hidden"></div>
+            </div>
         </div>
         <div id="status_bar">
             <div id="connection_status" class="offline"></div>
         </div>
+
+        <div id="pager_form_container">
+            <form id="pager_form">
+                <label for="child_number">Child:</label>
+                <input type="text" id="child_number" name="child_number" placeholder="000" pattern="[0-9]{3}" title="Child number must be 3 digits" required autocomplete="off"><br>
+                <label for="room">Room:</label>
+                <select id="room" name="room"></select><br>
+                <button type="submit" value="Submit">Queue</button>
+            </form>
+        </div>
         
-        <h3>Pager Queue</h3>
-        <table id="pager_list">
-        <tr>
-            <th>Child #</th>
-            <th>Room</th>
-            <th>Min</th>
-            <th></th>
-        </tr>
-        </table>
-        <h3>Active Pages</h3>
-        <table id="active_pages">
+        <div class="table_container">
+            <h3>Pager Queue</h3>
+            <table id="pager_list">
             <tr>
                 <th>Child #</th>
                 <th>Room</th>
-                <th>Expires</th>
+                <th>Min</th>
                 <th></th>
             </tr>
+            </table>
         </div>
-        
-        
+        <div class="table_container">
+            <h3>Active Pages</h3>
+            <table id="active_pages">
+                <tr>
+                    <th>Child #</th>
+                    <th>Room</th>
+                    <th>Expires</th>
+                    <th></th>
+                </tr>
+            </table>
+        </div>
+        <div class="table_container">
+            <h3>Previous Pages</h3>
+            <table id="prev_pages">
+                <tr>
+                    <th>Child #</th>
+                    <th>Room</th>
+                    <th>status</th>
+                    <th>time</th>
+                </tr>
+            </table>
+        </div>
     </body>
 </html>

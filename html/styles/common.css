@@ -30,10 +30,15 @@ div.toast {
     padding: 16px; 
     border-radius: 4px;
     animation: fadeOut 2s forwards;
+    pointer-events: none;
 }
 
 .hidden {
     display: none;
+    margin: 0;
+    padding: 0;
+    height: 0;
+    width: 0;
 }
 
 @keyframes fadeOut {
@@ -60,5 +65,15 @@ div.toast.show {
         transform: translate(-50%, -50%);
         opacity: 1;
     }
-    
+}
+
+@keyframes fadeOutSlideDown {
+    0% {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, 100%);
+        opacity: 0;
+    }
 }

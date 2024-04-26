@@ -1,12 +1,9 @@
-window.onload = function () {
-    updateTime();
-    setInterval(updateTime, 1000);
-}
-
 document.addEventListener("DOMContentLoaded", function(event) {
     document.querySelectorAll('img').forEach(function(img){
        img.onerror = function(){this.style.display='none';};
     })
+    updateTime();
+    setInterval(updateTime, 1000);
  });
 
 function toast(message, color="green") {

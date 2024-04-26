@@ -5,6 +5,8 @@
 #images
 *.jpg
 *.png
+*.ico
+*.svg
 
 #logs
 *.log
@@ -18,3 +20,7 @@ Thumbs.db
 html/.DS_Store
 scripts/.DS_Store
 img/.DS_Store
+
+#favicon setting files
+browserconfig.xml
+*.webmanifest

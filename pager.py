@@ -26,10 +26,9 @@ def initialize_database():
         CREATE TABLE IF NOT EXISTS pager_list(
             key TEXT PRIMARY KEY,
             timestamp TEXT,
-            child_number INTEGER,
+            child_number TEXT,
             room TEXT,
-            status TEXT,
-            page_time TEXT
+            status TEXT
         )
     ''')
 
@@ -206,6 +205,13 @@ class SimpleServer(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == '/api/submit':
+            
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(post_data)
+            child_number = data['child_number']
+            room = data['room']
+            
             #check valid child_number
             if not len(child_number) == 3 or not str(child_number).isdigit():
                 self.send_response(400)
@@ -224,12 +230,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
-                content_length = int(self.headers['Content-Length'])
-                post_data = self.rfile.read(content_length).decode('utf-8')
-                data = json.loads(post_data)
+                
 
-                child_number = data['child_number']
-                room = data['room']
                 #get timestamp from db
                 conn = sqlite3.connect('pager.db')
                 timestamp = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')

@@ -4,11 +4,49 @@ MAX_PAGES = 3; //maximum number of pages to display at once
 PAGE_SWITCH_INTERVAL = 3000; //time in milliseconds to switch between pages
 DISPLAY_TIME = 21000; //time in milliseconds to display the page on the screen
 
+
+TRASH_CAN = `<svg class="trashcan" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 25 24.8" style="enable-background:new 0 0 25 24.8;" xml:space="preserve" class="icon-trashcan ct-delete" data-ember-action="" data-ember-action-1015="1015">
+<g class="trashcan-open">
+  <path d="M18.7,24.4H5.9L4.9,7h14.9L18.7,24.4z M7.6,22.6H17l0.8-13.7h-11L7.6,22.6z"></path>
+  <polygon points="13.6,10.3 13.1,21.2 14.9,21.2 15.4,10.3 "></polygon>
+  <polygon points="11.5,21.2 11,10.3 9.2,10.3 9.7,21.2 "></polygon>
+  <path d="M19.1,0.7l-4.7,0.9l-0.8-1.4L8.2,1.3L8,3l-4.7,1l0.2,4.7l17.3-3.5L19.1,0.7z 
+           
+           M8.8,1.9l4.4 -1.0 l0.5,0.8
+           L8.7,2.8z 
+           
+           M5.2,6.4l0-1L18,2.8l0.3,0.9L5.2,6.4z"></path>
+</g>
+<g class="trashcan-closed">
+  <path d="M6.8,8.8h11L17,22.6
+           H7.6L6.8,8.8z 
+           M4.9,7l1,17.4h12.8
+           l1-17.4
+           H4.9z"></path>
+  <polygon points="13.6,10.3 13.1,21.2 14.9,21.2 15.4,10.3 "></polygon>
+  <polygon points="11.5,21.2 11,10.3 9.2,10.3 9.7,21.2 "></polygon>
+  <path d="M20.4,4h-4.8l-0.5-1.6
+           H9.5L9,4
+           H4.2
+           L3.5,8.6h17.6
+           L20.4,4z 
+           
+           M9.9,3.2h4.8
+           L14.9,3.9h-5.2z
+           
+           M5.6,6.7l0.2-1 h13l0.2,1
+           H5.6z"></path>
+</g>
+</svg>`;
+
 //initailize the page when everything is loaded
 window.onload = function () {
     document.getElementById("propresenter_address").addEventListener("change", checkAlive);
     document.getElementById("propresenter_port").addEventListener("change", checkAlive);
+    form = document.getElementById('pager_form');
+    form.addEventListener('submit', e => submitPage(e));
     recallProPresenterAddress();
+    updateRooms();
     getNewPages();
     checkAlive();
 
@@ -70,6 +108,21 @@ class Page {
             return false;
         }
     }
+}
+
+function updateRooms() {
+    fetch('/api/rooms')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.querySelector('select[name="room"]');
+            select.innerHTML = '';
+            data.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.name;
+                option.textContent = room.name;
+                select.appendChild(option);
+            });
+        });
 }
 
 function autoPageProcess() {
@@ -228,13 +281,17 @@ function checkVersion(address) {
 function updateTables() {
     var activePagesTable = document.getElementById("active_pages");
     var pagerListTable = document.getElementById("pager_list");
+    var expiredCancelledTable = document.getElementById("prev_pages");
 
+    // Clear the tables
     while (activePagesTable.rows.length > 1) {
         activePagesTable.deleteRow(1);
     }
-    // Clear the tables, except the header
     while (pagerListTable.rows.length > 1) {
         pagerListTable.deleteRow(1);
+    }
+    while (expiredCancelledTable.rows.length > 1) {
+        expiredCancelledTable.deleteRow(1);
     }
 
     for (var id in pageBucket) {
@@ -245,7 +302,9 @@ function updateTables() {
             row.innerHTML = '<td>' + p.child_number + '</td>' +
                 '<td>' + p.room + '</td>' +
                 '<td>' + age + '</td>' +
-                '<td><button onclick="sendToProPresenter(this)">Send</button></td>';
+                '<td><div class="page_buttons"><button onclick="sendToProPresenter(this)">Send</button>' +
+                '<button class="delete_button" onclick="warnDelete(this)">' + TRASH_CAN + '</button>' +
+                '</div></td>';
             row.id = id;
             pagerListTable.appendChild(row);
         }
@@ -280,6 +339,32 @@ function updateTables() {
             row.id = p.id;
             activePagesTable.appendChild(row);
         }
+
+        if (p.status === "expired" || p.status === "cancelled") {
+            var row = document.createElement('tr');
+            var date = new Date(p.timestamp);
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var formattedTime = (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes;
+
+            row.innerHTML = '<td>' + p.child_number + '</td>' +
+            '<td>' + p.room + '</td>' +
+            '<td>' + p.status + '</td>' +
+            '<td>' + formattedTime + '</td>';
+            row.id = p.id;
+            expiredCancelledTable.appendChild(row);
+        }
+    }
+}
+
+function warnDelete(button) {
+    var row = button.parentNode.parentNode.parentNode;
+    var child_number = row.cells[0].textContent;
+    var room = row.cells[1].textContent;
+    var message = "Are you sure you want to delete the page for child " + child_number + " in room " + room + "?";
+    if (confirm(message)) {
+        reportStatus(row.id, "cancelled");
+        pageBucket[row.id].status = "cancelled";
     }
 }
 
@@ -297,6 +382,8 @@ function getNewPages() {
                 else {
                     pageBucket[pages[i].key] = new Page(pages[i].key, pages[i].child_number, pages[i].room, pages[i].status);
                     pageBucket[pages[i].key].timestamp = pages[i].timestamp;
+                    var alert_sound = document.getElementById("notify_sound");
+                    alert_sound.play();
                 }
             }
         }
@@ -307,8 +394,11 @@ function getNewPages() {
 function sendToProPresenter(id) {
     //if page is a button, get the row data
     if (id.tagName === "BUTTON") {
-        id = id.parentNode.parentNode.id;
-        console.log(id);
+        _id = id.parentNode.parentNode.id;
+        if (!_id) {
+            _id = id.parentNode.parentNode.parentNode.id;
+        }
+        id = _id;
     }
 
     var page = pageBucket[id];
@@ -343,12 +433,35 @@ function sendToProPresenter(id) {
                 toast("Message sent to ProPresenter successfully.");
                 reportStatus(id, "active");
                 pageBucket[id].status = "active";
-                pageBucket[id].expires = Date.now() + DISPLAY_TIME;
             } else {
                 toast("Error sending message to ProPresenter.", "red");
             }
         }
     };
+}
+
+function submitPage(e) {
+    e.preventDefault();
+    fetch('/api/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            child_number: form.elements.child_number.value,
+            room: form.elements.room.value
+        })
+        
+    })
+    .then(response => {
+        if (response.status === 200) {
+            form.elements.child_number.value = '';
+        }
+        return response.text();
+    })
+    .then(data => {
+        toast(data);
+    });
 }
 
 function reportStatus(id, status) {
