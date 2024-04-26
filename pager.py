@@ -1,10 +1,36 @@
 #! /usr/bin/env python3
+# LICENSE: GNU GPL v3
+# 
+# ProPrePager - A simple pager server for children's ministry
+#
+# Galatians 6:9 Let’s not get tired of doing what is good, 
+# for at the right time we will reap a harvest—if we do not give up.
+#
+# github.com/bluedog8050/ProPrePager
 
-# USER CONFIGURATION #
+
+#########################################
+####### BEGIN USER CONFIGURATION ########
+#########################################
+
 SERVERHOST = 'localhost'
 SERVERPORT = 8000
+
 ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
-## END OF USER CONFIGURATION ##
+
+INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'    
+
+def validChildNumber(c):
+    if len(c) == 3 and str(c).isdigit():
+        return True
+    else:
+        return False
+    
+
+#########################################
+####### END OF USER CONFIGURATION #######
+#########################################
+
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -15,12 +41,6 @@ import os
 import json
 
 STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled']
-
-def validChildNumber(child_number):
-    if len(child_number) == 3 and str(child_number).isdigit():
-        return True
-    else:
-        return False
 
 def initialize_database():
     # Connect to the SQLite database (or create it)
@@ -225,7 +245,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                 self.send_response(400)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
-                self.wfile.write(b'Invalid child number. Must be a 3-digit number.')
+                self.wfile.write(INVALIDCHILDNUMBER_MSG.encode('utf-8'))
                 return
             #sanitize room
             elif room not in ROOMS:
