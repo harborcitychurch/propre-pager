@@ -16,6 +16,12 @@ import json
 
 STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled']
 
+def validChildNumber(child_number):
+    if len(child_number) == 3 and str(child_number).isdigit():
+        return True
+    else:
+        return False
+
 def initialize_database():
     # Connect to the SQLite database (or create it)
     db = sqlite3.connect('pager.db')
@@ -215,7 +221,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             room = data['room']
             
             #check valid child_number
-            if not len(child_number) == 3 or not str(child_number).isdigit():
+            if not validChildNumber(child_number):
                 self.send_response(400)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
