@@ -49,17 +49,20 @@ function submitPage(e) {
             child_number: form.elements.child_number.value,
             room: form.elements.room.value
         })
-        
     })
     .then(response => {
+        let color = 'green';
         if (response.status === 200) {
             form.elements.child_number.value = '';
             storeRoom();
         }
-        return response.text();
+        else {
+            color = 'red';
+        }
+        return { text: response.text(), color: color };
     })
     .then(data => {
-        toast(data);
+        data.text.then(message => toast(message, data.color));
     });
 }
 
