@@ -1,43 +1,10 @@
 //control.js
 //User constants
 MAX_PAGES = 3; //maximum number of pages to display at once
-PAGE_SWITCH_INTERVAL = 3000; //time in milliseconds to switch between pages
-DISPLAY_TIME = 21000; //time in milliseconds to display the page on the screen
+TABLE_UPDATE_INTERVAL = 200; //time in milliseconds to update the tables
+AUTO_PAGE_INTERVAL = 1000; //time in milliseconds to switch to the next page
+DISPLAY_TIME = 20000; //time in milliseconds to display the page on the screen
 
-
-TRASH_CAN = `<svg class="trashcan" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 25 24.8" style="enable-background:new 0 0 25 24.8;" xml:space="preserve" class="icon-trashcan ct-delete" data-ember-action="" data-ember-action-1015="1015">
-<g class="trashcan-open">
-  <path d="M18.7,24.4H5.9L4.9,7h14.9L18.7,24.4z M7.6,22.6H17l0.8-13.7h-11L7.6,22.6z"></path>
-  <polygon points="13.6,10.3 13.1,21.2 14.9,21.2 15.4,10.3 "></polygon>
-  <polygon points="11.5,21.2 11,10.3 9.2,10.3 9.7,21.2 "></polygon>
-  <path d="M19.1,0.7l-4.7,0.9l-0.8-1.4L8.2,1.3L8,3l-4.7,1l0.2,4.7l17.3-3.5L19.1,0.7z 
-           
-           M8.8,1.9l4.4 -1.0 l0.5,0.8
-           L8.7,2.8z 
-           
-           M5.2,6.4l0-1L18,2.8l0.3,0.9L5.2,6.4z"></path>
-</g>
-<g class="trashcan-closed">
-  <path d="M6.8,8.8h11L17,22.6
-           H7.6L6.8,8.8z 
-           M4.9,7l1,17.4h12.8
-           l1-17.4
-           H4.9z"></path>
-  <polygon points="13.6,10.3 13.1,21.2 14.9,21.2 15.4,10.3 "></polygon>
-  <polygon points="11.5,21.2 11,10.3 9.2,10.3 9.7,21.2 "></polygon>
-  <path d="M20.4,4h-4.8l-0.5-1.6
-           H9.5L9,4
-           H4.2
-           L3.5,8.6h17.6
-           L20.4,4z 
-           
-           M9.9,3.2h4.8
-           L14.9,3.9h-5.2z
-           
-           M5.6,6.7l0.2-1 h13l0.2,1
-           H5.6z"></path>
-</g>
-</svg>`;
 
 //initailize the page when everything is loaded
 window.onload = function () {
@@ -50,17 +17,20 @@ window.onload = function () {
     getNewPages();
     checkAlive();
 
+    autoPageTimer = document.getElementById("auto_page_interval").value * 1000;
+
     //set intervals for updating the time and checking for new pages
-    setInterval(autoPageProcess, PAGE_SWITCH_INTERVAL);
+    setInterval(autoPageProcess, AUTO_PAGE_INTERVAL);
     setInterval(checkAlive, 3000);
     setInterval(getNewPages, 2000);
-    setInterval(updateTables, 200);
+    setInterval(updateTables, TABLE_UPDATE_INTERVAL);
 }
 
 var pageBucket = {};
-var activePages = [];
-var currentIndex = 0;
+var autoPageHandler = [];
 var autoPage = false;
+var autoPageTimer = 0
+var lastSent;
 
 //page object
 // timestamp: time the page was created
@@ -88,21 +58,28 @@ class Page {
     }
 
     countdown() {
-        if (!this.expires) {
-            return "-";
-        }
-        var time = Math.floor((this.expires - Date.now()) / 1000);
-        if (time < 0) {
-            return "expired";
+        if (this.status === "active" || this.status === "auto" && this.duration > 0) {
+            if (this.duration > 0) {
+                var time = Math.floor(this.duration / 1000);
+                var minutes = Math.floor(time / 60);
+                var seconds = time % 60;
+                let t = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                if (t && t != "0:00") {
+                    return t;
+                }
+                else {
+                    return "-"; 
+                }
+            }
         }
         else {
-            return time;
+            return "-";
         }
     }
 
     isExpired() {
-        if (this.expires) {
-            return Date.now() > this.expires;
+        if (this.expires && this.duration < 1) {
+            return true;
         }
         else {
             return false;
@@ -129,50 +106,65 @@ function autoPageProcess() {
     if (autoPage) {
         var light = document.getElementById("auto_page_indicator");
         light.className = "on";
-        pruneActivePages();
-        fillActivePages();
         nextPage();
-        light.className = "off";
-    }
-}
-
-function pruneActivePages() {
-    for (var i = 0; i < activePages.length; i++) {
-        if (pageBucket[activePages[i]].duration <= 0) {
-            activePages.splice(i, 1);
-            pageBucket[activePages[i].id].status = "expired";
-            reportStatus(activePages[i].id, "expired");
-        }
-    }
-}
-
-function fillActivePages() {
-    while (activePages.length < MAX_PAGES) {
-        for (var id in pageBucket) {
-            if (pageBucket[id].status === "queued") {
-                activePages.push(id);
-                pageBucket[id].status = "active";
-                pageBucket[id].duration = DISPLAY_TIME;
-                reportStatus(id, "active");
-            }
-        }
+        setTimeout(() => {light.className = "off";}, 250);
     }
 }
 
 function nextPage() {
-    prev = currentIndex;
-    currentIndex++;
-    if (currentIndex >= activePages.length) {
-        currentIndex = 0;
+    var interval = document.getElementById("auto_page_interval").value * 1000;
+
+    //check each id in autoPageHandler to see if they are expired and purge them
+    for (var i = 0; i < autoPageHandler.length; i++) {
+        if (pageBucket[autoPageHandler[i]].isExpired() || 
+        pageBucket[autoPageHandler[i]].status === "cancelled" || 
+        pageBucket[autoPageHandler[i]].status === "expired") {
+            autoPageHandler.splice(i, 1);
+        }
+    }
+    
+    //fill the autoPageHandler with pages
+    if (autoPageHandler.length < MAX_PAGES) {
+        let addPage;
+        for (var id in pageBucket) {
+            let p = pageBucket[id];
+            if (p.status === "auto" && !autoPageHandler.includes(id)) { 
+                console.log("Found orphan auto page: " + id);
+                addPage = id;
+                break;
+            }
+            if (!addPage && p.status === "queued") { 
+                addPage = id;
+            }
+        }
+        if (addPage) { 
+            pageBucket[addPage].duration = DISPLAY_TIME;
+            pageBucket[addPage].expires = true;
+            updateStatus(addPage, "auto");
+            autoPageHandler.push(addPage);
+        }
     }
 
-    //decrement the duration of the current page
-    pageBucket[activePages[currentIndex]].duration -= PAGE_SWITCH_INTERVAL;
+    if (autoPageTimer <= 0) {
+        autoPageTimer = interval;
 
-    //only send a new page if the page has changed
-    if (prev !== currentIndex) {
-        sendToProPresenter(activePages[currentIndex]);
+        if (autoPageHandler.length > 0) {
+            var next = autoPageHandler.shift();
+            //don't send the same page twice in a row if there are other pages in the queue
+            if (next == lastSent && autoPageHandler.length > 1) {
+                autoPageHandler.push(next);
+                next = autoPageHandler.shift();
+            }
+            //if the last page is not expired, set it back to auto to wait for the next cycle
+            if (pageBucket[lastSent] && pageBucket[lastSent].status === "active") {
+                updateStatus(lastSent, "auto");
+            }
+            sendToProPresenter(next);
+            autoPageHandler.push(next);
+        }
     }
+
+    autoPageTimer -= AUTO_PAGE_INTERVAL;
 }
 
 function toggleAutoPage() {
@@ -296,6 +288,7 @@ function updateTables() {
 
     for (var id in pageBucket) {
         p = pageBucket[id];
+
         if (p.status === "queued") {
             var age = Math.floor((Date.now() - Date.parse(p.timestamp + 'Z')) / 60000);
             var row = document.createElement('tr');
@@ -303,39 +296,37 @@ function updateTables() {
                 '<td>' + p.room + '</td>' +
                 '<td>' + age + '</td>' +
                 '<td><div class="page_buttons"><button onclick="sendToProPresenter(this)">Send</button>' +
-                '<button class="delete_button" onclick="warnDelete(this)">' + TRASH_CAN + '</button>' +
+                '<button class="delete_button" onclick="warnDelete(this)">' + TRASH_CAN_SVG + '</button>' +
                 '</div></td>';
             row.id = id;
             pagerListTable.appendChild(row);
         }
 
-        if (p.status === "active" || p.status === "expired") {
-            if (p.status === "expired") {
-                time = "-";
-            }
-            else {
-                if (p.isExpired()) {
-                    time = "expired";
-                    reportStatus(id, "expired");
-                    p.expires = false;
-                    console.log(id + " is expired.")
-                }
-                else {
-                    time = p.countdown();
-                }
+        if (p.status === "active" || p.status === "auto") {
+            var time;
+            var percent;
+
+            if (p.isExpired() && p.status === "active") {
+                time = "expired";
+                updateStatus(id, "expired");
+                console.log(id + " is expired.")
             }
 
+            time = p.countdown();
+            percent = Math.floor((p.duration / DISPLAY_TIME) * 100);
+
             var row = document.createElement('tr');
-            if (time !== "expired" && time !== "-") {
+            if (time !== "expired" && time !== "-" && p.status === "active") {
                 active = "active";
             }
             else {
                 active = "";
             }
+            var row = document.createElement('tr');
             row.innerHTML = '<td class="' + active + '">' + p.child_number + '</td>' +
                 '<td class="' + active + '">' + p.room + '</td>' +
                 '<td class="' + active + '">' + time + '</td>' +
-                '<td><button onclick="sendToProPresenter(this)">Re-send</button></td>';
+                '<td width="50px"><div class="progress-bar" style="width: ' + percent + '%;"></div></td>';
             row.id = p.id;
             activePagesTable.appendChild(row);
         }
@@ -358,7 +349,11 @@ function updateTables() {
             '<td>' + p.status + '</td>' +
             '<td>' + formattedTime + '</td>';
             row.id = p.id;
-            expiredCancelledTable.appendChild(row);
+            expiredCancelledTable.insertBefore(row, expiredCancelledTable.firstChild);
+        }
+
+        if (!p.isExpired() && p.duration > 0 && p.status === "active") {
+            p.duration -= TABLE_UPDATE_INTERVAL;
         }
     }
 }
@@ -369,8 +364,7 @@ function warnDelete(button) {
     var room = row.cells[1].textContent;
     var message = "Are you sure you want to delete the page for child " + child_number + " in room " + room + "?";
     if (confirm(message)) {
-        reportStatus(row.id, "cancelled");
-        pageBucket[row.id].status = "cancelled";
+        updateStatus(row.id, "cancelled");
     }
 }
 
@@ -388,9 +382,14 @@ function getNewPages() {
                 else {
                     pageBucket[pages[i].key] = new Page(pages[i].key, pages[i].child_number, pages[i].room, pages[i].status);
                     pageBucket[pages[i].key].timestamp = pages[i].timestamp;
+                    if (pageBucket[pages[i].key].status === "active" || pageBucket[pages[i].key].status === "auto") {
+                        pageBucket[pages[i].key].duration = DISPLAY_TIME;
+                        pageBucket[pages[i].key].expires = true;
+                    }
                     var alert_sound = document.getElementById("notify_sound");
                     alert_sound.play();
                 }
+                
             }
         }
     }
@@ -399,7 +398,8 @@ function getNewPages() {
 
 function sendToProPresenter(id) {
     //if page is a button, get the row data
-    if (id.tagName === "BUTTON") {
+    if (typeof id === 'string') {}
+    else if (id.tagName === "BUTTON") {
         _id = id.parentNode.parentNode.id;
         if (!_id) {
             _id = id.parentNode.parentNode.parentNode.id;
@@ -437,8 +437,14 @@ function sendToProPresenter(id) {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 204) {
                 toast("Message sent to ProPresenter successfully.");
-                reportStatus(id, "active");
-                pageBucket[id].status = "active";
+                if (page.status === "queued") {
+                    page.duration = DISPLAY_TIME;
+                    page.expires = true;
+                }
+                if (page.status != "active") {
+                    updateStatus(id, "active");
+                }
+                lastSent = id;
             } else {
                 toast("Error sending message to ProPresenter.", "red");
             }
@@ -470,7 +476,8 @@ function submitPage(e) {
     });
 }
 
-function reportStatus(id, status) {
+function updateStatus(id, status) {
+    pageBucket[id].status = status;
     var url = '/api/report'
     var xhr = new XMLHttpRequest();
     xhr.open("PUT", url, true);

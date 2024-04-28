@@ -13,19 +13,25 @@
 ####### BEGIN USER CONFIGURATION ########
 #########################################
 
-SERVERHOST = 'localhost'
-SERVERPORT = 8000
+# 0.0.0.0 for all interfaces
+SERVERHOST = '0.0.0.0'
+# Change to 443 if using SSL/TLS
+SERVERPORT = 80
 
 ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
 
-INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'    
+INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'
 
 def validChildNumber(c):
     if len(c) == 3 and str(c).isdigit():
         return True
     else:
         return False
-    
+
+# SSL/TLS Configuration
+USESSLTLS = False
+SSLCERT = 'path/to/cert.pem'
+SSLKEY = 'path/to/key.pem'
 
 #########################################
 ####### END OF USER CONFIGURATION #######
@@ -39,8 +45,9 @@ import sqlite3
 import uuid
 import os
 import json
+import ssl
 
-STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled']
+STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto']
 
 def initialize_database():
     # Connect to the SQLite database (or create it)
@@ -83,27 +90,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-
-            #get current time from database
-            conn = sqlite3.connect('pager.db')
-            c = conn.cursor()
-            c.execute("SELECT datetime('now')")
-            row = c.fetchone()
-            conn.close()
-
-            # Create a dictionary with the current server time and database time
-            data = {
-                'server_time': datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S'),
-                'db_time': row[0]
-            }
-
-            # Convert the dictionary to a JSON string
-            json_data = json.dumps(data)
-
-            # Write the JSON string to the response
-            self.wfile.write(json_data.encode('utf-8'))
-
-            self.wfile.close()
+            self.wfile.write(datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S').encode('utf-8'))
 
         elif self.path == '/api/list':
             
@@ -325,7 +312,11 @@ class SimpleServer(BaseHTTPRequestHandler):
 
 def run_server():
     server_address = (SERVERHOST, SERVERPORT)
-    httpd = HTTPServer(server_address, SimpleServer)
+    if USESSLTLS:
+        httpd = HTTPServer(server_address, SimpleServer)
+        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=SSLCERT, keyfile=SSLKEY, server_side=True)
+    else:
+        httpd = HTTPServer(server_address, SimpleServer)
     initialize_database()
     print(f'Starting server on {SERVERHOST}:{SERVERPORT}...')
     httpd.serve_forever()

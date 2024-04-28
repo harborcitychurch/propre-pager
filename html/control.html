@@ -47,11 +47,11 @@
                 <input type="text" id="propresenter_port" value="1025" placeholder="1025">
             </div>
             <div class="settings">
-                Switch Interval:&nbsp;<input id="interval_int" type="number" min="1" max="30" value="5" required> seconds (When multiple pages are active)
+                Switch Interval:&nbsp;<input id="auto_page_interval" type="number" min="1" max="30" value="5" required> seconds (When multiple pages are active)
             </div>
-            <div class="hidden">
-                <button id="auto_page_button" onclick="toggleAutoPage()" class="inactive hidden">Auto Page: OFF</button>
-                <div id="auto_page_indicator" class="hidden"></div>
+            <div class="settings">
+                <button id="auto_page_button" onclick="toggleAutoPage()" class="inactive">Auto Page: OFF</button>
+                <div id="auto_page_indicator" class="off"></div>
             </div>
         </div>
         <div id="status_bar">
@@ -90,6 +90,9 @@
                     <th>time</th>
                 </tr>
             </table>
+        </div>
+        <div id="footer">
+            <p>&copy; 2024 Harbor City Church</p>
         </div>
     </body>
 </html>
