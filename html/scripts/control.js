@@ -145,26 +145,29 @@ function nextPage() {
         }
     }
 
-    if (autoPageTimer <= 0) {
+    if (autoPageTimer <= 0 && autoPageHandler.length > 0) {
         autoPageTimer = interval;
-
-        if (autoPageHandler.length > 0) {
-            var next = autoPageHandler.shift();
-            //don't send the same page twice in a row if there are other pages in the queue
-            if (next == lastSent && autoPageHandler.length > 1) {
-                autoPageHandler.push(next);
-                next = autoPageHandler.shift();
-            }
-            //if the last page is not expired, set it back to auto to wait for the next cycle
-            if (pageBucket[lastSent] && pageBucket[lastSent].status === "active") {
-                updateStatus(lastSent, "auto");
-            }
-            sendToProPresenter(next);
+        var next = autoPageHandler.shift();
+        //don't send the same page twice in a row if there are other pages in the queue
+        if (next == lastSent && autoPageHandler.length > 1) {
             autoPageHandler.push(next);
+            next = autoPageHandler.shift();
         }
+        //if the last page is not expired, set it back to auto to wait for the next cycle
+        if (pageBucket[lastSent] && pageBucket[lastSent].status === "active") {
+            updateStatus(lastSent, "auto");
+        }
+        sendToProPresenter(next);
+        autoPageHandler.push(next);
     }
 
-    autoPageTimer -= AUTO_PAGE_INTERVAL;
+    //this eliminates the delay for the first page if the queue is empty
+    if (autoPageHandler.length == 0){
+        autoPageTimer = 0;
+    }
+    else {
+        autoPageTimer -= AUTO_PAGE_INTERVAL;
+    }
 }
 
 function toggleAutoPage() {
@@ -326,7 +329,9 @@ function updateTables() {
             row.innerHTML = '<td class="' + active + '">' + p.child_number + '</td>' +
                 '<td class="' + active + '">' + p.room + '</td>' +
                 '<td class="' + active + '">' + time + '</td>' +
-                '<td width="50px"><div class="progress-bar" style="width: ' + percent + '%;"></div></td>';
+                '<td width="50px"><div class="progress-bar" style="width: ' + percent + '%;"></div></td>' +
+                '<button class="delete_button" onclick="warnDelete(this)">' + 
+                TRASH_CAN_SVG + '</button>';
             row.id = p.id;
             activePagesTable.appendChild(row);
         }
@@ -349,7 +354,8 @@ function updateTables() {
             '<td>' + p.status + '</td>' +
             '<td>' + formattedTime + '</td>';
             row.id = p.id;
-            expiredCancelledTable.insertBefore(row, expiredCancelledTable.firstChild);
+            //insert after the header row
+            expiredCancelledTable.insertBefore(row, expiredCancelledTable.children[1]);
         }
 
         if (!p.isExpired() && p.duration > 0 && p.status === "active") {

@@ -33,6 +33,8 @@ USESSLTLS = False
 SSLCERT = 'path/to/cert.pem'
 SSLKEY = 'path/to/key.pem'
 
+LOG_LEVEL = 'INFO'
+
 #########################################
 ####### END OF USER CONFIGURATION #######
 #########################################
@@ -48,6 +50,10 @@ import json
 import ssl
 
 STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto']
+
+ENUM_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
+start_time = datetime.now(UTC)
 
 def initialize_database():
     # Connect to the SQLite database (or create it)
@@ -86,14 +92,29 @@ class SimpleServer(BaseHTTPRequestHandler):
         query = urlparse(self.path).query
         self.path = self.path.split('?')[0]
 
+        #drop trailing slash
+        if self.path.endswith('/'):
+            self.path = self.path[:-1]
+
         if self.path == '/api/now':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S').encode('utf-8'))
-
+        
+        elif self.path == '/api/uptime':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(str(datetime.now(UTC) - start_time).encode('utf-8'))
+       
+        elif self.path == '/api/status':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'OK')
+        
         elif self.path == '/api/list':
-            
             conn = sqlite3.connect('pager.db')
             c = conn.cursor()
             c.execute("SELECT * FROM pager_list WHERE timestamp >= datetime('now', '-12 hour')")
@@ -120,7 +141,6 @@ class SimpleServer(BaseHTTPRequestHandler):
                 self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "key": "{key}", "page_time": "{page_time}"}}'.encode('utf-8'))
                 if row != rows[-1]:
                     self.wfile.write(b',')
-
             self.wfile.write(b']')
 
         elif self.path == '/api/rooms':
@@ -136,6 +156,35 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(room_json)
 
+        elif self.path == '/api/active':
+            conn = sqlite3.connect('pager.db')
+            c = conn.cursor()
+            c.execute("SELECT * FROM pager_list WHERE status = 'active'")
+            rows = c.fetchall()
+            conn.close()
+
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+
+            #send rows as JSON
+            self.wfile.write(b'[')
+
+            for row in rows:
+                key = row[0]
+                timestamp = row[1]
+                child_number = row[2]
+                room = row[3]
+                status = row[4]
+                try:
+                    page_time = row[5]
+                except:
+                    page_time = ''
+                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "page_time": "{page_time}", "key": "{key}"}}'.encode('utf-8'))
+                if row != rows[-1]:
+                    self.wfile.write(b',')
+            self.wfile.write(b']')
+
         elif self.path == '/api/history':
             # get date range from query string
             query_components = parse_qs(query)
@@ -145,8 +194,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                 try:
                     start_date = query_components['start'][0] + ' 00:00:00'
                 except Exception as e:
-                    print('Invalid start date')
-                    print(e)
+                    log('Invalid start date: ' + str(e))
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b'400 Bad Request')
@@ -158,6 +206,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                 try:
                     end_date = query_components['end'][0] + ' 23:59:59'
                 except:
+                    log('Invalid end date: ' + str(e))
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b'400 Bad Request')
@@ -194,15 +243,18 @@ class SimpleServer(BaseHTTPRequestHandler):
         #if not in /api, attempt to serve file. Prevent upwards traversal
         elif not self.path.startswith('/api/'):
             try:
-                if self.path == '/':
+                if self.path == '':
                     self.path = '/index.html'
-                if self.path == '/control/':
+                if self.path == '/control':
                     self.path = '/control.html'
 
                 #this prevents directory traversal outside of the html directory
                 if os.path.abspath(f'html{self.path}').startswith(os.path.abspath('html')):
                     with open(f'html{self.path}', 'rb') as f:
                         self.send_response(200)
+                        #cache images for 6 months
+                        if self.path.endswith('.jpg') or self.path.endswith('.png'):
+                            self.send_header('Cache-Control', 'max-age=15768000')
                         self.end_headers()
                         self.wfile.write(f.read())
                 else:
@@ -229,6 +281,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             
             #check valid child_number
             if not validChildNumber(child_number):
+                log(f'Invalid child number: {child_number} in room: {room}', 'WARNING')
                 self.send_response(400)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
@@ -236,6 +289,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                 return
             #sanitize room
             elif room not in ROOMS:
+                log(f'Invalid room: {room}', 'WARNING')
                 self.send_response(400)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
@@ -280,10 +334,15 @@ class SimpleServer(BaseHTTPRequestHandler):
                 #sanitize status and uuid
                 if status not in STATUS_CODES:
                     self.wfile.write(f'Invalid status. Valid codes are {STATUS_CODES}'.encode('utf-8'))
+                    log(f'Invalid status: {status}', 'WARNING')
                     return
                 if not uuid.UUID(key):
                     self.wfile.write(b'Invalid Item Key. Must be a valid UUID.')
+                    log(f'Invalid key: {key}', 'WARNING')
                     return
+                
+                if status == 'active':
+                    page_time = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
                 
                 # Update data in SQLite database
                 conn = sqlite3.connect('pager.db')
@@ -291,24 +350,29 @@ class SimpleServer(BaseHTTPRequestHandler):
                 try:
                     c.execute("UPDATE pager_list SET status = ? WHERE key = ?", (status, key))
                     conn.commit()
+                    if status == 'active':
+                        has_page_time = c.execute("SELECT page_time FROM pager_list WHERE key = ?", (key,)).fetchone()
+                        if not has_page_time:
+                            c.execute("UPDATE pager_list SET page_time = ? WHERE key = ?", (page_time, key))
+                            conn.commit()
                     conn.close()
                     self.wfile.write(b'Status updated successfully!')
                 except sqlite3.Error as e:
-                    self.wfile.write(f'''
-                        <html>
-                            <body>
-                                <a href="/">Back</a>
-                                <h2>Error</h2>
-                                <p>{e}</p>
-                            </body>
-                        </html>
-                    ''')
+                    self.wfile.write(b'Database Error, status may not have been updated.')
+                    log('In api/report: ' + str(e), 'ERROR')
+                    
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b'404 Not Found')
 
-    
+def log(message, level='INFO'):
+    if ENUM_LOG_LEVELS.index(level) >= ENUM_LOG_LEVELS.index(LOG_LEVEL):
+        timestamp = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
+        log_entry = f'{timestamp} [{level}] {message}'
+        with open('server.log', 'a') as log_file:
+            log_file.write(log_entry + '\n')
+            print(log_entry)
 
 def run_server():
     server_address = (SERVERHOST, SERVERPORT)
@@ -317,8 +381,23 @@ def run_server():
         httpd.socket = ssl.wrap_socket(httpd.socket, certfile=SSLCERT, keyfile=SSLKEY, server_side=True)
     else:
         httpd = HTTPServer(server_address, SimpleServer)
-    initialize_database()
-    print(f'Starting server on {SERVERHOST}:{SERVERPORT}...')
-    httpd.serve_forever()
+    try:
+        initialize_database()
+    except:
+        log('Error initializing database', 'ERROR')
+        return
+    
+    log(f'Starting server on {SERVERHOST}:{SERVERPORT}...')
+    
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        log('KeyboardInterrupt: Server shutting down...')
+        httpd.server_close()
+        log('Server shut down.')
 
-run_server()
+try:
+    run_server()
+except Exception as e:
+    log(f'Error: {e}', 'CRITICAL')
+    

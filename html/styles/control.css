@@ -7,6 +7,12 @@ div.table_container {
     vertical-align: top;
 }
 
+div.toast {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+}
+
 table {
     border-collapse: collapse;
     margin: 10px;
@@ -17,8 +23,7 @@ table {
     position: fixed;
     align-items: left;
     justify-content: space-between;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding: 10px 0;
     background-color: #333;
     color: white;
     position: absolute;
@@ -34,7 +39,7 @@ table {
 
 #footer {
     text-align: center;
-    padding: 10px;
+    padding: 10px 0;
     margin-top: 50px;
     background-color: #333;
     color: white;
@@ -58,9 +63,10 @@ label {
     margin: 5px;
 }
 
-form input, form select {
+input, select {
     margin: 5px;
     padding: 10px;
+    min-width: 50px;
     border-radius: 5px;
     border: 1px solid #777777;
 }
@@ -74,17 +80,16 @@ form input, form select {
 
 #clock {
     position: fixed; /* Change from fixed to absolute */
-    top: -10px; /* Position it below the header */
-    right: -10px;
+    top: 0;
+    right: 0;
     background-color: black;
     font-size: large;
     color: white;
-    padding: 10px;
+    padding: 10px 0;
     border-radius: 0 0 0 10px;
     align-items: center;
     width: auto;
     vertical-align: top;
-    margin: 10px;
     z-index: 2;
 }
 
@@ -198,7 +203,7 @@ tbody tr:first-child {
         display: block;
         position: absolute;
         top: 110px;
-        right: -30px;
+        left: 0;
         border-radius: 0;
         text-align: center;
         display: block;

@@ -18,26 +18,28 @@ body {
 }
 
 #logo {
-    margin: 100px auto 50px auto;
+    margin: 50px auto 20px auto;
     width: 100%;
     max-width: 300px;
 }
 
+#content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 90%;
+}
+
 #clock {
-    display: none;
-    width: 25%;
+    width: 50%;
     font-weight: bold;
-    top: 0;
-    right: 0;
     justify-content: center;
     background-color: rgb(44, 44, 44);
     color: white;
     padding: 10px;
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    width: auto;
-    vertical-align: top;
     margin: 10px;
 }
 
@@ -112,8 +114,31 @@ form button:hover {
     background-color: #0056b3;
 }
 
+@media screen and (max-height: 800px) {
+    #logo {
+        margin: 20px auto 10px auto;
+    }
+    #form {
+        margin-bottom: 200px;
+        width: 90%;
+        flex-direction: row;
+    }
+    #footer {
+        display: none;
+    }   
+
+}
+
 @media screen and (max-width: 600px) {
     body {
+        margin: 0;
+        padding: 0;
+    }
+    #clock {
+        width: 100%;
+    }
+    #content {
+        width: 100%;
         margin: 0;
         padding: 0;
     }

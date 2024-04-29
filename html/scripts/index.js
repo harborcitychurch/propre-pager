@@ -6,7 +6,7 @@ window.onload = function() {
     warning_container = document.getElementById('connection_status_container');
     warning_container.innerHTML = WARNING_ICON_SVG + warning_container.innerHTML;
 
-    setInterval(checkServer, 5000);
+    setInterval(checkServer, 10000);
 }
 
 WARNING_ICON_SVG = `<svg fill="#FF0000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -25,6 +25,8 @@ WARNING_ICON_SVG = `<svg fill="#FF0000" version="1.1" id="Capa_1" xmlns="http://
     </g>
 </g>
 </svg>`;
+
+recentPages = [];
 
 //recall room index from local storage
 function recallRoom() {
