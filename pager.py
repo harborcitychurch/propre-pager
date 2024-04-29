@@ -69,7 +69,8 @@ def initialize_database():
             timestamp TEXT,
             child_number TEXT,
             room TEXT,
-            status TEXT
+            status TEXT,
+            page_time TEXT
         )
     ''')
 
