@@ -262,6 +262,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                 if os.path.abspath(f'html{self.path}').startswith(os.path.abspath('html')):
                     with open(f'html{self.path}', 'rb') as f:
                         self.send_response(200)
+                        #allow cross-origin requests
+                        self.send_header('Access-Control-Allow-Origin', '*')
                         #cache images for 6 months
                         if self.path.endswith('.jpg') or self.path.endswith('.png'):
                             self.send_header('Cache-Control', 'max-age=15768000')
@@ -388,6 +390,11 @@ def log(message, level='INFO'):
 
 def run_server():
     server_address = (SERVERHOST, SERVERPORT)
+    
+    # Set CORS header to allow requests from any origin
+    SimpleServer.send_header = SimpleServer.send_header + 'Access-Control-Allow-Origin: *\r\n'
+    SimpleServer.end_headers = SimpleServer.end_headers + 'Access-Control-Allow-Origin: *\r\n'
+
     if USESSLTLS:
         httpd = HTTPServer(server_address, SimpleServer)
         httpd.socket = ssl.wrap_socket(httpd.socket, certfile=SSLCERT, keyfile=SSLKEY, server_side=True)
