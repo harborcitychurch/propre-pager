@@ -33,7 +33,7 @@ USESSLTLS = False
 SSLCERT = 'path/to/cert.pem'
 SSLKEY = 'path/to/key.pem'
 
-LOG_LEVEL = 'DEBUG'
+LOG_LEVEL = 'INFO'
 
 #########################################
 ####### END OF USER CONFIGURATION #######
@@ -107,7 +107,12 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(str(datetime.now(UTC) - start_time).encode('utf-8'))
+            raw_uptime = datetime.now(UTC) - start_time
+            days,remainder = divmod(raw_uptime.total_seconds(), 86400)
+            hours,remainder = divmod(remainder, 3600)
+            minutes,seconds = divmod(remainder, 60)
+            uptime = f'{int(days)} days, {str(int(hours)).zfill(2)}:{str(int(minutes)).zfill(2)}:{str(int(seconds)).zfill(2)}'
+            self.wfile.write(uptime.encode('utf-8'))
        
         elif self.path == '/api/status':
             self.send_response(200)
