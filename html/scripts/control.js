@@ -195,14 +195,14 @@ function checkAlive() {
         setConnectionStatus();
         return;
     }
-    var url = `http://${propresenterAddress}:${ppPort}'/version`;
+    var url = `http://${ppAddress}:${ppPort}/version`;
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
                 var response = JSON.parse(xhr.responseText);
-                response.address = propresenterAddress;
+                response.address = `${ppAddress}:${ppPort}`;
                 reportAlive(response);
             }
             else {
