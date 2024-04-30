@@ -53,6 +53,10 @@ STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto']
 
 ENUM_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 start_time = datetime.now(UTC)
 
 def initialize_database():
