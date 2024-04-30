@@ -389,6 +389,7 @@ def log(message, level='INFO'):
             print(log_entry)
 
 def run_server():
+    
     server_address = (SERVERHOST, SERVERPORT)
 
     if USESSLTLS:
