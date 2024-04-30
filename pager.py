@@ -390,10 +390,6 @@ def log(message, level='INFO'):
 
 def run_server():
     server_address = (SERVERHOST, SERVERPORT)
-    
-    # Set CORS header to allow requests from any origin
-    SimpleServer.send_header = SimpleServer.send_header + 'Access-Control-Allow-Origin: *\r\n'
-    SimpleServer.end_headers = SimpleServer.end_headers + 'Access-Control-Allow-Origin: *\r\n'
 
     if USESSLTLS:
         httpd = HTTPServer(server_address, SimpleServer)
