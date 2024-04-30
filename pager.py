@@ -33,7 +33,7 @@ USESSLTLS = False
 SSLCERT = 'path/to/cert.pem'
 SSLKEY = 'path/to/key.pem'
 
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = 'DEBUG'
 
 #########################################
 ####### END OF USER CONFIGURATION #######
@@ -277,8 +277,8 @@ class SimpleServer(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
             data = json.loads(post_data)
-            child_number = data['child_number']
-            room = data['room']
+            child_number = str(data['child_number'])
+            room = str(data['room'])
             
             #check valid child_number
             if not validChildNumber(child_number):
@@ -310,12 +310,13 @@ class SimpleServer(BaseHTTPRequestHandler):
                 # Write data to SQLite database
                 conn = sqlite3.connect('pager.db')
                 c = conn.cursor()
-                c.execute("INSERT INTO pager_list VALUES (?, ?, ?, ?, ?)",
+                c.execute("INSERT INTO pager_list VALUES (?, ?, ?, ?, ?, '')",
                             (key, timestamp, child_number, room, 'queued'))
                 conn.commit()
                 conn.close()
 
                 self.wfile.write(b'Page has been queued successfully!')
+                log(f'Page queued - child number: {child_number} in room: {room}', 'DEBUG')
         else:
             self.send_response(404)
             self.end_headers()
@@ -358,6 +359,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                             conn.commit()
                     conn.close()
                     self.wfile.write(b'Status updated successfully!')
+                    log(f'Status updated to {status} for key: {key}', 'DEBUG')
                 except sqlite3.Error as e:
                     self.wfile.write(b'Database Error, status may not have been updated.')
                     log('In api/report: ' + str(e), 'ERROR')

@@ -1,6 +1,7 @@
 body {
     text-align: center;
     animation: fadeIn 1s;
+    background-color: #939ba8;
 }
 
 #footer {
@@ -112,6 +113,20 @@ form button {
 
 form button:hover {
     background-color: #0056b3;
+}
+
+#recents_container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 50%;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+    background-color: #fff;
 }
 
 @media screen and (max-height: 800px) {

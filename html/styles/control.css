@@ -38,6 +38,9 @@ table {
 }
 
 #footer {
+    position: fixed;
+    bottom: 0;
+    top: auto;
     text-align: center;
     padding: 10px 0;
     margin-top: 50px;
@@ -196,6 +199,12 @@ tbody tr:nth-child(odd) {
 
 tbody tr:first-child {
     background-color: #b7e1ff;
+}
+
+@media (max-height: 900px) { /* for small landscape screens */
+    #footer {
+        display: none;
+    }
 }
 
 @media (max-width: 1000px) { /* for narrow screens */

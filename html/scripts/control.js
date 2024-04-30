@@ -29,6 +29,8 @@ window.onload = function () {
 var pageBucket = {};
 var autoPageHandler = [];
 var autoPage = false;
+var connectedToProPresenter = false;
+var connectedToServer = true;
 var autoPageTimer = 0
 var lastSent;
 
@@ -223,6 +225,7 @@ function setConnectionStatus(status = false) {
     var connectionStatus = document.getElementById("connection_status");
     if (status) {
         if (connectionStatus.textContent === status) {
+            connectedToProPresenter = true;
             return;
         }
         if (connectionStatus.className === "offline") {
@@ -230,13 +233,16 @@ function setConnectionStatus(status = false) {
         }
         connectionStatus.textContent = status;
         connectionStatus.className = "online";
+        connectedToProPresenter = true;
     }
     else {
         if (connectionStatus.className === "offline") {
+            connectedToProPresenter = false;
             return;
         }
-        connectionStatus.textContent = 'Server disconnected';
+        connectionStatus.textContent = 'ProPresenter disconnected';
         connectionStatus.className = "offline";
+        connectedToProPresenter = false;
     }
 }
 
@@ -332,7 +338,7 @@ function updateTables() {
                 '<td width="50px"><div class="progress-bar" style="width: ' + percent + '%;"></div></td>' +
                 '<button class="delete_button" onclick="warnDelete(this)">' + 
                 TRASH_CAN_SVG + '</button>';
-            row.id = p.id;
+            row.id = id;
             activePagesTable.appendChild(row);
         }
 
@@ -341,7 +347,7 @@ function updateTables() {
             var date = new Date(p.timestamp);
             var hours = date.getHours();
             if(date.getTimezoneOffset() != 0) {
-                hours = (hours - date.getTimezoneOffset() / 60) % 24;
+                hours = (hours - date.getTimezoneOffset() / 60 + 24) % 24;
             }
             var ampm = hours >= 12 ? 'pm' : 'am';
             hours = hours % 12;
@@ -403,6 +409,10 @@ function getNewPages() {
 }
 
 function sendToProPresenter(id) {
+    if (!connectedToProPresenter) {
+        toast("Cannot send page, not connected to ProPresenter.", "red");
+        return;
+    }
     //if page is a button, get the row data
     if (typeof id === 'string') {}
     else if (id.tagName === "BUTTON") {
