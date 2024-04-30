@@ -5,6 +5,8 @@ TABLE_UPDATE_INTERVAL = 200; //time in milliseconds to update the tables
 AUTO_PAGE_INTERVAL = 1000; //time in milliseconds to switch to the next page
 DISPLAY_TIME = 20000; //time in milliseconds to display the page on the screen
 
+PAGER_NAME = "parent-pager"; //name of the message in ProPresenter
+
 
 //initailize the page when everything is loaded
 window.onload = function () {
@@ -187,13 +189,13 @@ function toggleAutoPage() {
 }
 
 function checkAlive() {
-    var propresenterAddress = document.getElementById("propresenter_address").value +
-        ':' + document.getElementById("propresenter_port").value;
-    if (!propresenterAddress) {
+    let ppAddress = document.getElementById("propresenter_address").value;
+    let ppPort = document.getElementById("propresenter_port").value;
+    if (!ppAddress) {
         setConnectionStatus();
         return;
     }
-    var url = 'http://' + propresenterAddress + '/version';
+    var url = `http://${propresenterAddress}:${ppPort}'/version`;
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.onreadystatechange = function () {
@@ -425,8 +427,9 @@ function sendToProPresenter(id) {
 
     var page = pageBucket[id];
 
-    var propresenterAddress = document.getElementById("propresenter_address").value + ':' + document.getElementById("propresenter_port").value;
-    var url = 'http://' + propresenterAddress + '/v1/message/parent-pager/trigger';
+    let ppAddress = document.getElementById("propresenter_address").value;
+    let ppPort = document.getElementById("propresenter_port").value;
+    var url = `http://${ppAddress}:${ppPort}/v1/message/${PAGER_NAME}/trigger`;
     var payload = [
         {
             "name": "Child#",
