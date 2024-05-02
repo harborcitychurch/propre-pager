@@ -18,6 +18,8 @@ WORKDIR /app
 
 COPY ./ ./
 
+RUN apk update && apk upgrade
+
 RUN apk add --no-cache python3
 
 EXPOSE 80/tcp
