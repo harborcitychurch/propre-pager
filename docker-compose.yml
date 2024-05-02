@@ -1,6 +1,6 @@
 # ignored options for 'proprepager'
 # -P
-name: ProPrePager
+name: proprepager-server
 services:
     proprepager:
         build: .
