@@ -14,8 +14,11 @@
 #config files
 *.config
 
+.env
+
 #os stuff
 *.DS_Store
+DS_Store
 Thumbs.db
 
 #favicon setting files

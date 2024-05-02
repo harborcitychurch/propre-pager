@@ -1,0 +1,15 @@
+# ignored options for 'proprepager'
+# -P
+name: ProPrePager
+services:
+    proprepager:
+        build: .
+        volumes:
+            - ./data:/app/data
+        env_file:
+            - .env
+        image: bluedog8050/proprepager
+        ports:
+            - "80:80"
+            - "443:443"
+        restart: unless-stopped

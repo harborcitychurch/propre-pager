@@ -1,0 +1,2 @@
+# Empty mountable directory for db and logs to fall into
+!.gitignore
