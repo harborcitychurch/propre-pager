@@ -40,7 +40,7 @@ SERVERHOST = '0.0.0.0'
 SERVERPORT = 443 if USESSLTLS else 80
 
 # Rooms Configuration (can be set manually like this: ROOMS = ['Room 1', 'Room 2', 'Room 3'])
-ROOMS = os.getenv('ROOMS', '- No Rooms Configured -').split(',')
+ROOMS = os.getenv('ROOMS', '').split(',')
 
 INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'
 

@@ -14,6 +14,7 @@ window.onload = function () {
     document.getElementById("propresenter_port").addEventListener("change", checkAlive);
     form = document.getElementById('pager_form');
     form.addEventListener('submit', e => submitPage(e));
+    document.getElementById("propresenter_message_name").addEventListener("change", saveMessageName)
     recallProPresenterAddress();
     updateRooms();
     getNewPages();
@@ -26,6 +27,7 @@ window.onload = function () {
     setInterval(checkAlive, 3000);
     setInterval(getNewPages, 2000);
     setInterval(updateTables, TABLE_UPDATE_INTERVAL);
+    setInterval(updateMessageList, 10000);
 }
 
 var pageBucket = {};
@@ -88,6 +90,13 @@ class Page {
         else {
             return false;
         }
+    }
+}
+
+function saveMessageName() {
+    var messageName = document.getElementById("propresenter_message_name").value;
+    if (messageName) {
+        localStorage.setItem("messageName", messageName);
     }
 }
 
@@ -410,6 +419,32 @@ function getNewPages() {
     xhr.send();
 }
 
+function updateMessageList() {
+    if (connectedToProPresenter) {
+        var propresenter_address = document.getElementById("propresenter_address").value;
+        var propresenter_port = document.getElementById("propresenter_port").value;
+        var select = document.getElementById("propresenter_message_name");
+        var url = `http://${propresenter_address}:${propresenter_port}/v1/messages`;
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                var messages = JSON.parse(xhr.responseText);
+                select.innerHTML = '';
+                messages.forEach(function (message) {
+                    var option = document.createElement("option");
+                    option.value = message.id.name;
+                    option.text = message.id.name;
+                    select.appendChild(option);
+                });
+               select.value = localStorage.getItem("messageName");
+            }
+        };
+        xhr.send();
+    }
+}
+
 function sendToProPresenter(id) {
     if (!connectedToProPresenter) {
         toast("Cannot send page, not connected to ProPresenter.", "red");
@@ -425,11 +460,18 @@ function sendToProPresenter(id) {
         id = _id;
     }
 
+    var pager_name = document.getElementById("propresenter_message_name").value;
+
+    if (!pager_name) {
+        toast("Unable to send page: Please select a message name in settings", "red");
+        return;
+    }
+
     var page = pageBucket[id];
 
     let ppAddress = document.getElementById("propresenter_address").value;
     let ppPort = document.getElementById("propresenter_port").value;
-    var url = `http://${ppAddress}:${ppPort}/v1/message/${PAGER_NAME}/trigger`;
+    var url = `http://${ppAddress}:${ppPort}/v1/message/${pager_name}/trigger`;
     var payload = [
         {
             "name": "Child#",

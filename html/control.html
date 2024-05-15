@@ -47,7 +47,12 @@
                 <input type="text" id="propresenter_port" value="1025" placeholder="1025">
             </div>
             <div class="settings">
-                Switch Interval:&nbsp;<input id="auto_page_interval" type="number" min="1" max="30" value="5" required> seconds (When multiple pages are active)
+                <label for="propresenter_message_name">ProPresenter Message Name:</label>
+                <select id="propresenter_message_name">
+                </select>
+            </div>
+            <div class="settings">
+                Switch Interval:&nbsp;<input id="auto_page_interval" type="number" min="1" max="30" value="5" required> seconds
             </div>
             <div class="settings">
                 <button id="auto_page_button" onclick="toggleAutoPage()" class="inactive">Auto Page: OFF</button>

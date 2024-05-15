@@ -16,7 +16,9 @@ LABEL org.label-schema.docker.cmd: "docker run -d -P -v ./data:/app/data bluedog
 
 WORKDIR /app
 
-COPY ./ ./
+COPY ./pager.py ./
+COPY ./requirements.txt ./
+COPY ./.env ./
 
 RUN apk update && apk upgrade
 

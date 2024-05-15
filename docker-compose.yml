@@ -6,10 +6,11 @@ services:
         build: .
         volumes:
             - ./data:/app/data
+            - ./html:/app/html
         env_file:
             - .env
         image: bluedog8050/proprepager
         ports:
             - "80:80"
             - "443:443"
-        restart: unless-stopped
+        restart: always
