@@ -11,6 +11,6 @@ services:
             - .env
         image: bluedog8050/proprepager
         ports:
-            - "80:80"
-            - "443:443"
+            - "80"
+            - "443"
         restart: always
