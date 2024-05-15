@@ -20,6 +20,18 @@ window.onload = function () {
     getNewPages();
     checkAlive();
 
+    //clock follows the page when scrolling
+    window.addEventListener('scroll', function() {
+        var clock = document.getElementById('clock');
+        if (window.scrollY > 120) {
+            clock.style.position = 'fixed';
+            clock.style.top = '0'; //height of the header when scrolled down
+        } else {
+            clock.style.position = 'absolute';
+            clock.style.top = '120px'; //height of the header
+        }
+    });
+
     autoPageTimer = document.getElementById("auto_page_interval").value * 1000;
 
     //set intervals for updating the time and checking for new pages

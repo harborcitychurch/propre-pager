@@ -82,23 +82,23 @@ input, select {
 }
 
 #clock {
-    position: fixed; /* Change from fixed to absolute */
-    top: 0;
+    position: absolute;
+    top: 120px;
     right: 0;
     background-color: black;
     font-size: large;
     color: white;
-    padding: 10px 0;
+    padding: 10px;
     border-radius: 0 0 0 10px;
     align-items: center;
     width: auto;
     vertical-align: top;
-    z-index: 2;
+    z-index: 1000;
 }
 
 #logo img {
-    height: 75px; /* Adjust as needed */
-    width: auto; /* Adjust as needed */
+    height: 75px;
+    width: auto;
     margin: 10px 20px;
 }
 
