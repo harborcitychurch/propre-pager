@@ -21,8 +21,8 @@ COPY ./requirements.txt ./
 COPY ./.env ./
 
 RUN apk update && apk upgrade
-
 RUN apk add --no-cache python3
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 EXPOSE 80/tcp
 EXPOSE 443/tcp
