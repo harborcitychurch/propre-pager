@@ -5,8 +5,14 @@ TABLE_UPDATE_INTERVAL = 200; //time in milliseconds to update the tables
 AUTO_PAGE_INTERVAL = 1000; //time in milliseconds to switch to the next page
 DISPLAY_TIME = 20000; //time in milliseconds to display the page on the screen
 
-PAGER_NAME = "parent-pager"; //name of the message in ProPresenter
-
+//Global variables
+var pageBucket = {};
+var autoPageHandler = [];
+var autoPage = false;
+var connectedToProPresenter = false;
+var connectedToServer = true;
+var autoPageTimer = 0
+var lastSent;
 
 //initailize the page when everything is loaded
 window.onload = function () {
@@ -41,14 +47,6 @@ window.onload = function () {
     setInterval(updateTables, TABLE_UPDATE_INTERVAL);
     setInterval(updateMessageList, 10000);
 }
-
-var pageBucket = {};
-var autoPageHandler = [];
-var autoPage = false;
-var connectedToProPresenter = false;
-var connectedToServer = true;
-var autoPageTimer = 0
-var lastSent;
 
 //page object
 // timestamp: time the page was created
@@ -134,6 +132,27 @@ function autoPageProcess() {
         nextPage();
         setTimeout(() => {light.className = "off";}, 250);
     }
+}
+
+function toggleSettings() {
+    var expand = document.getElementById("expand_settings");
+    if (expand.textContent === "add") {
+        expand.textContent = "remove";
+    }
+    else {
+        expand.textContent = "add";
+    }
+    var settings = document.getElementsByClassName("settings");
+    for (var i = 0; i < settings.length; i++) {
+        //add or remove the hidden class
+        if (settings[i].classList.contains("hidden")) {
+            settings[i].classList.remove("hidden");
+        }
+        else {
+            settings[i].classList.add("hidden");
+        }
+    }
+
 }
 
 function nextPage() {
@@ -327,8 +346,8 @@ function updateTables() {
             row.innerHTML = '<td>' + p.child_number + '</td>' +
                 '<td>' + p.room + '</td>' +
                 '<td>' + age + '</td>' +
-                '<td><div class="page_buttons"><button onclick="sendToProPresenter(this)">Send</button>' +
-                '<button class="delete_button" onclick="warnDelete(this)">' + TRASH_CAN_SVG + '</button>' +
+                '<td><div class="page_buttons"><button onclick="sendToProPresenter(this)"><i class="material-icons">send</i></button>' +
+                '<button class="delete_button" onclick="warnDelete(this)"><i class="material-icons">delete</i></button>' +
                 '</div></td>';
             row.id = id;
             pagerListTable.appendChild(row);

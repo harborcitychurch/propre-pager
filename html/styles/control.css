@@ -74,13 +74,6 @@ input, select {
     border: 1px solid #777777;
 }
 
-.page_buttons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 10px;
-}
-
 #clock {
     position: absolute;
     top: 120px;
@@ -121,9 +114,8 @@ tr td:first-child {
     display: flex;
     align-items: center;
     justify-content: left;
-    
     padding: 5px;
-    margin: 10px;
+    margin: 5px;
 }
 
 
@@ -178,15 +170,21 @@ input[type="checkbox"] {
     margin: 10px;
 }
 
+.material-icons {
+    vertical-align: bottom;
+    cursor: pointer;
+}
+
 button {
-    padding: 10px 25px;
-    margin: 5px;
+    padding: 15px 40px;
+    margin: 10px;
     border-radius: 5px;
     font-size: large;
     border: none;
     background-color: #1e6f20;
     color: white;
     align-self: center;
+    cursor: pointer;
 }
 
 tbody tr:nth-child(even) {
@@ -237,18 +235,12 @@ tbody tr:first-child {
     }
 
     button {
-        padding: 15px 50px;
-        margin: 5px;
+        padding: 15px 20px;
         border-radius: 5px;
         font-size: large;
         border: none;
         background-color: #1e6f20;
         color: white;
-    }
-
-    .delete_button {
-        background-color: rgb(255, 84, 84);
-        padding:10px;
     }
 
     .trashcan {
@@ -299,8 +291,6 @@ tbody tr:first-child {
 
 .delete_button {
     background-color: rgb(255, 84, 84);
-    padding:5px;
-    z-index: 2;
 }
 
 .trashcan {
