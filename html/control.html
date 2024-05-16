@@ -53,7 +53,7 @@
                 </select>
             </div>
             <div class="settings">
-                Switch Interval:&nbsp;<input id="auto_page_interval" type="number" min="1" max="30" value="5" required> seconds
+                Switch Interval:&nbsp;<input id="auto_page_interval" type="number" min="1" max="60" value="10" required> seconds
             </div>
             <div class="settings">
                 <button id="auto_page_button" onclick="toggleAutoPage()" class="inactive">Auto Page: OFF</button>
@@ -98,6 +98,7 @@
                 </tr>
             </table>
         </div>
+        <div id="health_status"><span id="host-server-status" class="material-icons">check_circle</span>&nbsp;<span id="host-server-status-text" class="hidden">Host Server OK</span></div>&nbsp;
         <div id="footer">
             <p>&copy; 2024 Harbor City Church</p>
         </div>

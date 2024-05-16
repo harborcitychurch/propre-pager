@@ -33,8 +33,42 @@ table {
     z-index: 1;
 }
 
+.progress-bar-container {
+    width: 100%;
+    border: 2px solid #777777;
+    padding: 0;
+    border-radius: 7px;
+}
+
 .progress-bar {
     background-color: #5100ff;
+    border-radius: 5px;
+    height: 30 px;
+    padding: 0;
+    padding-top: 20px;
+}
+
+#health_status{
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    background-color: green;
+    color: white;
+    padding: 10px;
+    border-radius: 10px 0 0 0;
+    align-items: center;
+    width: auto;
+    vertical-align: middle;
+    z-index: 1000;
+}
+
+#health_status.error {
+    background-color: rgb(255, 84, 84);
+    color: white;
+}
+
+#health_status > .material-icons {
+    cursor: default;
 }
 
 #footer {
