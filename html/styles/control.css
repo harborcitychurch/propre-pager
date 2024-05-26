@@ -33,8 +33,42 @@ table {
     z-index: 1;
 }
 
+.progress-bar-container {
+    width: 100%;
+    border: 2px solid #777777;
+    padding: 0;
+    border-radius: 7px;
+}
+
 .progress-bar {
     background-color: #5100ff;
+    border-radius: 5px;
+    height: 30 px;
+    padding: 0;
+    padding-top: 20px;
+}
+
+#health_status{
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    background-color: green;
+    color: white;
+    padding: 10px;
+    border-radius: 10px 0 0 0;
+    align-items: center;
+    width: auto;
+    vertical-align: middle;
+    z-index: 1000;
+}
+
+#health_status.error {
+    background-color: rgb(255, 84, 84);
+    color: white;
+}
+
+#health_status > .material-icons {
+    cursor: default;
 }
 
 #footer {
@@ -74,31 +108,24 @@ input, select {
     border: 1px solid #777777;
 }
 
-.page_buttons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 10px;
-}
-
 #clock {
-    position: fixed; /* Change from fixed to absolute */
-    top: 0;
+    position: absolute;
+    top: 120px;
     right: 0;
     background-color: black;
     font-size: large;
     color: white;
-    padding: 10px 0;
+    padding: 10px;
     border-radius: 0 0 0 10px;
     align-items: center;
     width: auto;
     vertical-align: top;
-    z-index: 2;
+    z-index: 1000;
 }
 
 #logo img {
-    height: 75px; /* Adjust as needed */
-    width: auto; /* Adjust as needed */
+    height: 75px;
+    width: auto;
     margin: 10px 20px;
 }
 
@@ -121,9 +148,8 @@ tr td:first-child {
     display: flex;
     align-items: center;
     justify-content: left;
-    
     padding: 5px;
-    margin: 10px;
+    margin: 5px;
 }
 
 
@@ -178,15 +204,21 @@ input[type="checkbox"] {
     margin: 10px;
 }
 
+.material-icons {
+    vertical-align: bottom;
+    cursor: pointer;
+}
+
 button {
-    padding: 10px 25px;
-    margin: 5px;
+    padding: 15px 40px;
+    margin: 10px;
     border-radius: 5px;
     font-size: large;
     border: none;
     background-color: #1e6f20;
     color: white;
     align-self: center;
+    cursor: pointer;
 }
 
 tbody tr:nth-child(even) {
@@ -237,18 +269,12 @@ tbody tr:first-child {
     }
 
     button {
-        padding: 15px 50px;
-        margin: 5px;
+        padding: 15px 20px;
         border-radius: 5px;
         font-size: large;
         border: none;
         background-color: #1e6f20;
         color: white;
-    }
-
-    .delete_button {
-        background-color: rgb(255, 84, 84);
-        padding:10px;
     }
 
     .trashcan {
@@ -299,8 +325,6 @@ tbody tr:first-child {
 
 .delete_button {
     background-color: rgb(255, 84, 84);
-    padding:5px;
-    z-index: 2;
 }
 
 .trashcan {

@@ -1,0 +1,16 @@
+# ignored options for 'proprepager'
+# -P
+name: proprepager
+services:
+    server:
+        build: .
+        volumes:
+            - ./data:/app/data
+            - ./html:/app/html
+        env_file:
+            - .env
+        image: bluedog8050/proprepager
+        ports:
+            - "80:80"
+            - "443:443"
+        restart: always

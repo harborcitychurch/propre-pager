@@ -2,11 +2,17 @@
 //User constants
 MAX_PAGES = 3; //maximum number of pages to display at once
 TABLE_UPDATE_INTERVAL = 200; //time in milliseconds to update the tables
-AUTO_PAGE_INTERVAL = 1000; //time in milliseconds to switch to the next page
+AUTO_PAGE_INTERVAL = 1000; //time in milliseconds to update the auto pager
 DISPLAY_TIME = 20000; //time in milliseconds to display the page on the screen
 
-PAGER_NAME = "parent-pager"; //name of the message in ProPresenter
-
+//Global variables
+var pageBucket = {};
+var autoPageHandler = [];
+var autoPage = false;
+var connectedToProPresenter = false;
+var connectedToServer = true;
+var autoPageTimer = 0
+var lastSent;
 
 //initailize the page when everything is loaded
 window.onload = function () {
@@ -14,10 +20,25 @@ window.onload = function () {
     document.getElementById("propresenter_port").addEventListener("change", checkAlive);
     form = document.getElementById('pager_form');
     form.addEventListener('submit', e => submitPage(e));
+    document.getElementById("propresenter_message_name").addEventListener("change", saveMessageName)
+    document.getElementById("health_status").addEventListener('pointerover', showStatusText);
+    document.getElementById("health_status").addEventListener('pointerout', hideStatusText);
     recallProPresenterAddress();
     updateRooms();
     getNewPages();
     checkAlive();
+
+    //clock follows the page when scrolling
+    window.addEventListener('scroll', function() {
+        var clock = document.getElementById('clock');
+        if (window.scrollY > 120) {
+            clock.style.position = 'fixed';
+            clock.style.top = '0'; //height of the header when scrolled down
+        } else {
+            clock.style.position = 'absolute';
+            clock.style.top = '120px'; //height of the header
+        }
+    });
 
     autoPageTimer = document.getElementById("auto_page_interval").value * 1000;
 
@@ -26,15 +47,8 @@ window.onload = function () {
     setInterval(checkAlive, 3000);
     setInterval(getNewPages, 2000);
     setInterval(updateTables, TABLE_UPDATE_INTERVAL);
+    setInterval(updateMessageList, 10000);
 }
-
-var pageBucket = {};
-var autoPageHandler = [];
-var autoPage = false;
-var connectedToProPresenter = false;
-var connectedToServer = true;
-var autoPageTimer = 0
-var lastSent;
 
 //page object
 // timestamp: time the page was created
@@ -65,11 +79,8 @@ class Page {
         if (this.status === "active" || this.status === "auto" && this.duration > 0) {
             if (this.duration > 0) {
                 var time = Math.floor(this.duration / 1000);
-                var minutes = Math.floor(time / 60);
-                var seconds = time % 60;
-                let t = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-                if (t && t != "0:00") {
-                    return t;
+                if (time && time >= 1) {
+                    return time;
                 }
                 else {
                     return "-"; 
@@ -91,6 +102,16 @@ class Page {
     }
 }
 
+function showStatusText() {document.getElementById("host-server-status-text").className = "";}
+function hideStatusText() {document.getElementById("host-server-status-text").className = "hidden";}
+
+function saveMessageName() {
+    var messageName = document.getElementById("propresenter_message_name").value;
+    if (messageName) {
+        localStorage.setItem("messageName", messageName);
+    }
+}
+
 function updateRooms() {
     fetch('/api/rooms')
         .then(response => response.json())
@@ -108,6 +129,7 @@ function updateRooms() {
 
 function autoPageProcess() {
     if (autoPage) {
+        cleanUpPageBuckets();
         var light = document.getElementById("auto_page_indicator");
         light.className = "on";
         nextPage();
@@ -115,17 +137,29 @@ function autoPageProcess() {
     }
 }
 
-function nextPage() {
-    var interval = document.getElementById("auto_page_interval").value * 1000;
-
-    //check each id in autoPageHandler to see if they are expired and purge them
-    for (var i = 0; i < autoPageHandler.length; i++) {
-        if (pageBucket[autoPageHandler[i]].isExpired() || 
-        pageBucket[autoPageHandler[i]].status === "cancelled" || 
-        pageBucket[autoPageHandler[i]].status === "expired") {
-            autoPageHandler.splice(i, 1);
+function toggleSettings() {
+    var expand = document.getElementById("expand_settings");
+    if (expand.textContent === "add") {
+        expand.textContent = "remove";
+    }
+    else {
+        expand.textContent = "add";
+    }
+    var settings = document.getElementsByClassName("settings");
+    for (var i = 0; i < settings.length; i++) {
+        //add or remove the hidden class
+        if (settings[i].classList.contains("hidden")) {
+            settings[i].classList.remove("hidden");
+        }
+        else {
+            settings[i].classList.add("hidden");
         }
     }
+
+}
+
+function nextPage() {
+    var interval = document.getElementById("auto_page_interval").value * 1000;
     
     //fill the autoPageHandler with pages
     if (autoPageHandler.length < MAX_PAGES) {
@@ -152,8 +186,8 @@ function nextPage() {
     if (autoPageTimer <= 0 && autoPageHandler.length > 0) {
         autoPageTimer = interval;
         var next = autoPageHandler.shift();
-        //don't send the same page twice in a row if there are other pages in the queue
-        if (next == lastSent && autoPageHandler.length > 1) {
+        //don't send the same page twice in a row
+        if (next == lastSent) {
             autoPageHandler.push(next);
             next = autoPageHandler.shift();
         }
@@ -171,6 +205,24 @@ function nextPage() {
     }
     else {
         autoPageTimer -= AUTO_PAGE_INTERVAL;
+    }
+}
+
+function cleanUpPageBuckets() {
+    //check each id in pageBucket to see if they are expired and set them to expired
+    for (var id in pageBucket) {
+        if (pageBucket[id].isExpired()) {
+            updateStatus(id, "expired");
+        }
+    }
+
+    //check each id in autoPageHandler to see if they are expired and purge them
+    for (var i = 0; i < autoPageHandler.length; i++) {
+        if (pageBucket[autoPageHandler[i]].isExpired() || 
+        pageBucket[autoPageHandler[i]].status === "cancelled" || 
+        pageBucket[autoPageHandler[i]].status === "expired") {
+            autoPageHandler.splice(i, 1);
+        }
     }
 }
 
@@ -198,6 +250,7 @@ function checkAlive() {
     var url = `http://${ppAddress}:${ppPort}/version`;
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
+    xhr.timeout = 2000;
     xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
@@ -221,6 +274,7 @@ function reportAlive(info) {
     }
     localStorage.setItem("propresenterAddress", info.address);
     setConnectionStatus('Connected to ' + info.name + ' - ' + info.host_description);
+    updateMessageList();
 }
 
 function setConnectionStatus(status = false) {
@@ -306,8 +360,8 @@ function updateTables() {
             row.innerHTML = '<td>' + p.child_number + '</td>' +
                 '<td>' + p.room + '</td>' +
                 '<td>' + age + '</td>' +
-                '<td><div class="page_buttons"><button onclick="sendToProPresenter(this)">Send</button>' +
-                '<button class="delete_button" onclick="warnDelete(this)">' + TRASH_CAN_SVG + '</button>' +
+                '<td><div class="page_buttons"><button onclick="sendToProPresenter(this)"><i class="material-icons">send</i></button>' +
+                '<button class="delete_button" onclick="warnDelete(this)"><span class="material-icons">delete</span></button>' +
                 '</div></td>';
             row.id = id;
             pagerListTable.appendChild(row);
@@ -324,7 +378,9 @@ function updateTables() {
             }
 
             time = p.countdown();
-            percent = Math.floor((p.duration / DISPLAY_TIME) * 100);
+
+            dec_percent = p.duration / DISPLAY_TIME;
+            percent = Math.floor(dec_percent * 100);
 
             var row = document.createElement('tr');
             if (time !== "expired" && time !== "-" && p.status === "active") {
@@ -333,13 +389,15 @@ function updateTables() {
             else {
                 active = "";
             }
+            
+            let cdtimer = `${time} <div class="progress-bar-container"><div class="progress-bar" style="width: ${percent}%"></div></div>`
+
             var row = document.createElement('tr');
             row.innerHTML = '<td class="' + active + '">' + p.child_number + '</td>' +
                 '<td class="' + active + '">' + p.room + '</td>' +
-                '<td class="' + active + '">' + time + '</td>' +
-                '<td width="50px"><div class="progress-bar" style="width: ' + percent + '%;"></div></td>' +
-                '<button class="delete_button" onclick="warnDelete(this)">' + 
-                TRASH_CAN_SVG + '</button>';
+                '<td class="' + active + '">' + cdtimer + '</td>' +
+                '<td><div class="page_buttons"><button class="delete_button" onclick="warnDelete(this)">' + 
+                '<span class="material-icons">delete<span></button></div></td>';
             row.id = id;
             activePagesTable.appendChild(row);
         }
@@ -389,6 +447,13 @@ function getNewPages() {
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+            connectedToServer = true;
+            indicator = document.getElementById("host-server-status");
+            indicator.textContent = "check_circle";
+            indicator.parentElement.className = "ok";
+            msg = document.getElementById("host-server-status-text");
+            msg.textContent = "Host server OK";
+
             var pages = JSON.parse(xhr.responseText);
             //add new pages to the pageBucket
             for (var i = 0; i < pages.length; i++) {
@@ -406,8 +471,42 @@ function getNewPages() {
                 
             }
         }
+        if (xhr.readyState === XMLHttpRequest.DONE && xhr.status != 200) {
+            connectedToServer = false;
+            indicator = document.getElementById("host-server-status");
+            indicator.textContent = "error";
+            indicator.parentElement.className = "error";
+            msg = document.getElementById("host-server-status-text");
+            msg.textContent = "Host server OFFLINE";
+        }
     }
     xhr.send();
+}
+
+function updateMessageList() {
+    if (connectedToProPresenter) {
+        var propresenter_address = document.getElementById("propresenter_address").value;
+        var propresenter_port = document.getElementById("propresenter_port").value;
+        var select = document.getElementById("propresenter_message_name");
+        var url = `http://${propresenter_address}:${propresenter_port}/v1/messages`;
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                var messages = JSON.parse(xhr.responseText);
+                select.innerHTML = '';
+                messages.forEach(function (message) {
+                    var option = document.createElement("option");
+                    option.value = message.id.name;
+                    option.text = message.id.name;
+                    select.appendChild(option);
+                });
+               select.value = localStorage.getItem("messageName");
+            }
+        };
+        xhr.send();
+    }
 }
 
 function sendToProPresenter(id) {
@@ -425,11 +524,18 @@ function sendToProPresenter(id) {
         id = _id;
     }
 
+    var pager_name = document.getElementById("propresenter_message_name").value;
+
+    if (!pager_name) {
+        toast("Unable to send page: Please select a message name in settings", "red");
+        return;
+    }
+
     var page = pageBucket[id];
 
     let ppAddress = document.getElementById("propresenter_address").value;
     let ppPort = document.getElementById("propresenter_port").value;
-    var url = `http://${ppAddress}:${ppPort}/v1/message/${PAGER_NAME}/trigger`;
+    var url = `http://${ppAddress}:${ppPort}/v1/message/${pager_name}/trigger`;
     var payload = [
         {
             "name": "Child#",

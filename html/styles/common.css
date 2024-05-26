@@ -54,12 +54,16 @@ div.toast {
     z-index: 10;
 }
 
-.hidden {
+div.hidden {
     display: none;
     margin: 0;
     padding: 0;
     height: 0;
     width: 0;
+}
+
+.hidden {
+    display: none;
 }
 
 @keyframes fadeOut {

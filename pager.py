@@ -8,17 +8,39 @@
 #
 # github.com/bluedog8050/ProPrePager
 
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
+from datetime import datetime, UTC
+import sqlite3
+import uuid
+import os
+import json
+import ssl
+import signal
+
+# try to load .env file
+try:
+    from dotenv import load_dotenv    
+    load_dotenv()
+except:
+    pass
 
 #########################################
 ####### BEGIN USER CONFIGURATION ########
 #########################################
 
+# SSL/TLS Configuration
+USESSLTLS = os.getenv('USESSLTLS', 'false').lower() == 'true'
+SSLCERT = os.getenv('SSLCERT', 'cert.pem')
+SSLKEY = os.getenv('SSLKEY', 'key.pem')
+
 # 0.0.0.0 for all interfaces
 SERVERHOST = '0.0.0.0'
 # Change to 443 if using SSL/TLS
-SERVERPORT = 80
+SERVERPORT = 443 if USESSLTLS else 80
 
-ROOMS = ['Boardwalk', 'Meadow', 'Alpine', 'Uptown', 'Wonder Kids']
+# Rooms Configuration (can be set manually like this: ROOMS = ['Room 1', 'Room 2', 'Room 3'])
+ROOMS = os.getenv('ROOMS', '').split(',')
 
 INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'
 
@@ -28,57 +50,25 @@ def validChildNumber(c):
     else:
         return False
 
-# SSL/TLS Configuration
-USESSLTLS = False
-SSLCERT = 'path/to/cert.pem'
-SSLKEY = 'path/to/key.pem'
 
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 #########################################
 ####### END OF USER CONFIGURATION #######
 #########################################
 
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import parse_qs, urlparse
-from datetime import datetime, UTC
-import sqlite3
-import uuid
-import os
-import json
-import ssl
-
 STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto']
 
 ENUM_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 start_time = datetime.now(UTC)
 
-def initialize_database():
-    # Connect to the SQLite database (or create it)
-    db = sqlite3.connect('pager.db')
-
-    # Create a cursor object
-    cursor = db.cursor()
-
-    # Create table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS pager_list(
-            key TEXT PRIMARY KEY,
-            timestamp TEXT,
-            child_number TEXT,
-            room TEXT,
-            status TEXT,
-            page_time TEXT
-        )
-    ''')
-
-    # Commit the transaction
-    db.commit()
-
-    # Close the connection
-    db.close()
+server_address = (SERVERHOST, SERVERPORT)
 
 class SimpleServer(BaseHTTPRequestHandler):
     propresenter_address = ''
@@ -121,7 +111,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.wfile.write(b'OK')
         
         elif self.path == '/api/list':
-            conn = sqlite3.connect('pager.db')
+            conn = sqlite3.connect('data/pager.db')
             c = conn.cursor()
             c.execute("SELECT * FROM pager_list WHERE timestamp >= datetime('now', '-12 hour')")
             rows = c.fetchall()
@@ -163,7 +153,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.wfile.write(room_json)
 
         elif self.path == '/api/active':
-            conn = sqlite3.connect('pager.db')
+            conn = sqlite3.connect('data/pager.db')
             c = conn.cursor()
             c.execute("SELECT * FROM pager_list WHERE status = 'active'")
             rows = c.fetchall()
@@ -219,7 +209,7 @@ class SimpleServer(BaseHTTPRequestHandler):
                     return
 
             #get requests within date range
-            conn = sqlite3.connect('pager.db')
+            conn = sqlite3.connect('data/pager.db')
             c = conn.cursor()
             c.execute("SELECT * FROM pager_list WHERE timestamp BETWEEN ? AND ?", (start_date, end_date))
             rows = c.fetchall()
@@ -258,6 +248,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                 if os.path.abspath(f'html{self.path}').startswith(os.path.abspath('html')):
                     with open(f'html{self.path}', 'rb') as f:
                         self.send_response(200)
+                        #allow cross-origin requests
+                        self.send_header('Access-Control-Allow-Origin', '*')
                         #cache images for 6 months
                         if self.path.endswith('.jpg') or self.path.endswith('.png'):
                             self.send_header('Cache-Control', 'max-age=15768000')
@@ -308,12 +300,11 @@ class SimpleServer(BaseHTTPRequestHandler):
                 
 
                 #get timestamp from db
-                conn = sqlite3.connect('pager.db')
                 timestamp = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
                 key = str(uuid.uuid4())
 
                 # Write data to SQLite database
-                conn = sqlite3.connect('pager.db')
+                conn = sqlite3.connect('data/pager.db')
                 c = conn.cursor()
                 c.execute("INSERT INTO pager_list VALUES (?, ?, ?, ?, ?, '')",
                             (key, timestamp, child_number, room, 'queued'))
@@ -350,14 +341,16 @@ class SimpleServer(BaseHTTPRequestHandler):
                 
                 if status == 'active':
                     page_time = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
+                else:
+                    page_time = ''
                 
                 # Update data in SQLite database
-                conn = sqlite3.connect('pager.db')
+                conn = sqlite3.connect('data/pager.db')
                 c = conn.cursor()
                 try:
                     c.execute("UPDATE pager_list SET status = ? WHERE key = ?", (status, key))
                     conn.commit()
-                    if status == 'active':
+                    if page_time:
                         has_page_time = c.execute("SELECT page_time FROM pager_list WHERE key = ?", (key,)).fetchone()
                         if not has_page_time:
                             c.execute("UPDATE pager_list SET page_time = ? WHERE key = ?", (page_time, key))
@@ -374,21 +367,65 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'404 Not Found')
 
+if USESSLTLS:
+    httpd = HTTPServer(server_address, SimpleServer)
+    httpd.socket = ssl.wrap_socket(httpd.socket, certfile=SSLCERT, keyfile=SSLKEY, server_side=True)
+else:
+    httpd = HTTPServer(server_address, SimpleServer)
+
+def handle_sigterm(signum, frame):
+    log('Received SIGTERM signal. Server shutting down...')
+    httpd.server_close()
+    log('Server shut down.')
+    exit(0)
+
+def initialize_database():
+    # Connect to the SQLite database (or create it)
+    db = sqlite3.connect('data/pager.db')
+
+    # Create a cursor object
+    cursor = db.cursor()
+
+    # Create table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pager_list(
+            key TEXT PRIMARY KEY,
+            timestamp TEXT,
+            child_number TEXT,
+            room TEXT,
+            status TEXT,
+            page_time TEXT
+        )
+    ''')
+
+    # Commit the transaction
+    db.commit()
+
+    # Close the connection
+    db.close()
+
+
 def log(message, level='INFO'):
+    if not LOG_LEVEL in ENUM_LOG_LEVELS:
+        timestamp = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
+        log_entry = f'{timestamp} [{level}] {message}'
+        with open('data/server.log', 'a') as log_file:
+            log_file.write(log_entry + '\n')
+            print(log_entry)
     if ENUM_LOG_LEVELS.index(level) >= ENUM_LOG_LEVELS.index(LOG_LEVEL):
         timestamp = datetime.strftime(datetime.now(UTC), '%Y-%m-%d %H:%M:%S')
         log_entry = f'{timestamp} [{level}] {message}'
-        with open('server.log', 'a') as log_file:
+        with open('data/server.log', 'a') as log_file:
             log_file.write(log_entry + '\n')
             print(log_entry)
 
 def run_server():
-    server_address = (SERVERHOST, SERVERPORT)
-    if USESSLTLS:
-        httpd = HTTPServer(server_address, SimpleServer)
-        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=SSLCERT, keyfile=SSLKEY, server_side=True)
-    else:
-        httpd = HTTPServer(server_address, SimpleServer)
+    # Register the signal handler for SIGTERM
+    signal.signal(signal.SIGTERM, handle_sigterm)
+
+    if LOG_LEVEL not in ENUM_LOG_LEVELS:
+        log(f'Invalid log level: {LOG_LEVEL}, defaulting to DEBUG', 'WARNING')
+
     try:
         initialize_database()
     except:
@@ -403,7 +440,7 @@ def run_server():
         log('KeyboardInterrupt: Server shutting down...')
         httpd.server_close()
         log('Server shut down.')
-
+    
 try:
     run_server()
 except Exception as e:
