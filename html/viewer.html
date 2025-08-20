@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pager Dispatch</title>
+        <script src="/scripts/common.js"></script>
+        <script src="/scripts/viewer.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="/styles/common.css">
+        <link rel="stylesheet" type="text/css" href="/styles/control.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+        <link rel="manifest" href="/site.webmanifest">
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#ff9800">
+        <meta name="msapplication-TileColor" content="#da532c">
+        <meta name="theme-color" content="#ffffff">
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo"><img src="/header_logo.png"></div>
+        </div>
+        <div id="clock"></div>
+        <div id="toast" class="toast hidden">
+            <span id="toast-message"></span>
+        </div>
+
+        <div id="alert_frame" hidden></div>
+        
+        <div class="table_container">
+            <h3>Pager Queue</h3> <button id="copy_queue" onclick="copyQueue()">Copy Queue</button>
+            <table id="pager_list">
+            <thead>
+                <tr>
+                    <th>Child #</th>
+                    <th>Room</th>
+                    <th>Min</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            </table>
+        </div>
+        <div class="table_container">
+            <h3>Previous Pages</h3>
+            <table id="prev_pages">
+            <thead>
+                <tr>
+                    <th>Child #</th>
+                    <th>Room</th>
+                    <th>status</th>
+                    <th>time</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            </table>
+        </div>
+        <div id="health_status"><span id="host-server-status" class="material-icons">check_circle</span>&nbsp;<span id="host-server-status-text" class="hidden">Host Server OK</span></div>&nbsp;
+        <div id="footer">
+            <p>&copy; 2024 Harbor City Church</p>
+        </div>
+    </body>
+</html>

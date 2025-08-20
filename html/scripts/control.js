@@ -40,6 +40,14 @@ window.onload = function () {
         }
     });
 
+    message_uuid = document.getElementById("propresenter_message_uuid");
+    message_name = document.getElementById("propresenter_message_name").value;
+    window.addEventListener('change', function() {
+        if (message_name) {
+            message_uuid.textContent = document.querySelector(`option[value="${message_name}"]`).dataset.uuid || "00000000-0000-0000-0000-000000000000";
+        }
+    });
+
     autoPageTimer = document.getElementById("auto_page_interval").value * 1000;
 
     //set intervals for updating the time and checking for new pages
@@ -178,7 +186,7 @@ function nextPage() {
         if (addPage) { 
             pageBucket[addPage].duration = DISPLAY_TIME;
             pageBucket[addPage].expires = true;
-            updateStatus(addPage, "auto");
+            reportStatus(addPage, "auto");
             autoPageHandler.push(addPage);
         }
     }
@@ -193,7 +201,7 @@ function nextPage() {
         }
         //if the last page is not expired, set it back to auto to wait for the next cycle
         if (pageBucket[lastSent] && pageBucket[lastSent].status === "active") {
-            updateStatus(lastSent, "auto");
+            reportStatus(lastSent, "auto");
         }
         sendToProPresenter(next);
         autoPageHandler.push(next);
@@ -212,7 +220,7 @@ function cleanUpPageBuckets() {
     //check each id in pageBucket to see if they are expired and set them to expired
     for (var id in pageBucket) {
         if (pageBucket[id].isExpired()) {
-            updateStatus(id, "expired");
+            reportStatus(id, "completed");
         }
     }
 
@@ -220,7 +228,8 @@ function cleanUpPageBuckets() {
     for (var i = 0; i < autoPageHandler.length; i++) {
         if (pageBucket[autoPageHandler[i]].isExpired() || 
         pageBucket[autoPageHandler[i]].status === "cancelled" || 
-        pageBucket[autoPageHandler[i]].status === "expired") {
+        pageBucket[autoPageHandler[i]].status === "expired" ||
+        pageBucket[autoPageHandler[i]].status === "completed") {
             autoPageHandler.splice(i, 1);
         }
     }
@@ -336,19 +345,19 @@ function checkVersion(address) {
 }
 
 function updateTables() {
-    var activePagesTable = document.getElementById("active_pages");
-    var pagerListTable = document.getElementById("pager_list");
-    var expiredCancelledTable = document.getElementById("prev_pages");
+    var activePagesTable = document.querySelector("#active_pages > tbody");
+    var pagerListTable = document.querySelector("#pager_list > tbody");
+    var expiredCancelledTable = document.querySelector("#prev_pages > tbody");
 
     // Clear the tables
-    while (activePagesTable.rows.length > 1) {
-        activePagesTable.deleteRow(1);
+    while (activePagesTable.rows.length > 0) {
+        activePagesTable.deleteRow(0);
     }
-    while (pagerListTable.rows.length > 1) {
-        pagerListTable.deleteRow(1);
+    while (pagerListTable.rows.length > 0) {
+        pagerListTable.deleteRow(0);
     }
-    while (expiredCancelledTable.rows.length > 1) {
-        expiredCancelledTable.deleteRow(1);
+    while (expiredCancelledTable.rows.length > 0) {
+        expiredCancelledTable.deleteRow(0);
     }
 
     for (var id in pageBucket) {
@@ -372,9 +381,9 @@ function updateTables() {
             var percent;
 
             if (p.isExpired() && p.status === "active") {
-                time = "expired";
-                updateStatus(id, "expired");
-                console.log(id + " is expired.")
+                time = "copmleted";
+                reportStatus(id, "completed");
+                console.log(id + " is completed.")
             }
 
             time = p.countdown();
@@ -383,7 +392,7 @@ function updateTables() {
             percent = Math.floor(dec_percent * 100);
 
             var row = document.createElement('tr');
-            if (time !== "expired" && time !== "-" && p.status === "active") {
+            if (time !== "-" && p.status === "active") {
                 active = "active";
             }
             else {
@@ -402,7 +411,7 @@ function updateTables() {
             activePagesTable.appendChild(row);
         }
 
-        if (p.status === "expired" || p.status === "cancelled") {
+        if (p.status === "expired" || p.status === "cancelled" || p.status === "completed") {
             var row = document.createElement('tr');
             var date = new Date(p.timestamp);
             var hours = date.getHours();
@@ -420,8 +429,8 @@ function updateTables() {
             '<td>' + p.status + '</td>' +
             '<td>' + formattedTime + '</td>';
             row.id = p.id;
-            //insert after the header row
-            expiredCancelledTable.insertBefore(row, expiredCancelledTable.children[1]);
+            //insert at the top of the previous pages table
+            expiredCancelledTable.insertBefore(row, expiredCancelledTable.children[0]);
         }
 
         if (!p.isExpired() && p.duration > 0 && p.status === "active") {
@@ -436,7 +445,7 @@ function warnDelete(button) {
     var room = row.cells[1].textContent;
     var message = "Are you sure you want to delete the page for child " + child_number + " in room " + room + "?";
     if (confirm(message)) {
-        updateStatus(row.id, "cancelled");
+        reportStatus(row.id, "cancelled");
     }
 }
 
@@ -456,6 +465,7 @@ function getNewPages() {
 
             var pages = JSON.parse(xhr.responseText);
             //add new pages to the pageBucket
+            pageBucket = {};
             for (var i = 0; i < pages.length; i++) {
                 if (pageBucket[pages[i].key]) { pageBucket[pages[i].key].status = pages[i].status; }
                 else {
@@ -500,6 +510,7 @@ function updateMessageList() {
                     var option = document.createElement("option");
                     option.value = message.id.name;
                     option.text = message.id.name;
+                    option.dataset.uuid = message.id.uuid;
                     select.appendChild(option);
                 });
                select.value = localStorage.getItem("messageName");
@@ -556,6 +567,7 @@ function sendToProPresenter(id) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
+    console.log("Sending page to ProPresenter: " + JSON.stringify(payload));
     xhr.send(JSON.stringify(payload));
 
     xhr.onreadystatechange = function () {
@@ -567,7 +579,7 @@ function sendToProPresenter(id) {
                     page.expires = true;
                 }
                 if (page.status != "active") {
-                    updateStatus(id, "active");
+                    reportStatus(id, "active");
                 }
                 lastSent = id;
             } else {
@@ -601,7 +613,7 @@ function submitPage(e) {
     });
 }
 
-function updateStatus(id, status) {
+function reportStatus(id, status) {
     pageBucket[id].status = status;
     var url = '/api/report'
     var xhr = new XMLHttpRequest();

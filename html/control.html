@@ -2,7 +2,6 @@
 <html>
     <head>
         <title>Pager Dispatch</title>
-        <script src="/scripts/propresenterapi.js"></script>
         <script src="/scripts/common.js"></script>
         <script src="/scripts/control.js"></script>
 
@@ -51,6 +50,7 @@
                 <label for="propresenter_message_name">ProPresenter Message Name:</label>
                 <select id="propresenter_message_name">
                 </select>
+                <span class="settings" id="propresenter_message_uuid">00000000-0000-0000-0000-000000000000</span>
             </div>
             <div class="settings">
                 Switch Interval:&nbsp;<input id="auto_page_interval" type="number" min="1" max="60" value="10" required> seconds
@@ -67,35 +67,43 @@
         <div class="table_container">
             <h3>Pager Queue</h3>
             <table id="pager_list">
-            <tr>
-                <th>Child #</th>
-                <th>Room</th>
-                <th>Min</th>
-                <th></th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Child #</th>
+                    <th>Room</th>
+                    <th>Min</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
             </table>
         </div>
         <div class="table_container">
             <h3>Active Pages</h3>
             <table id="active_pages">
-                <tr>
-                    <th>Child #</th>
-                    <th>Room</th>
-                    <th>Expires</th>
-                    <th></th>
-                    <th></th>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Child #</th>
+                        <th>Room</th>
+                        <th>Expires</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            <tbody></tbody>
             </table>
         </div>
         <div class="table_container">
             <h3>Previous Pages</h3>
             <table id="prev_pages">
-                <tr>
-                    <th>Child #</th>
-                    <th>Room</th>
-                    <th>status</th>
-                    <th>time</th>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Child #</th>
+                        <th>Room</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+            <tbody></tbody>
             </table>
         </div>
         <div id="health_status"><span id="host-server-status" class="material-icons">check_circle</span>&nbsp;<span id="host-server-status-text" class="hidden">Host Server OK</span></div>&nbsp;
