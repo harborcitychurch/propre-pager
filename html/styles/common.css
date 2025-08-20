@@ -39,11 +39,12 @@ body {
     display: flex;
 }
 
-div.toast {
-    position: fixed; 
+div#toast {
+    position: fixed;
+    top: auto;
+    bottom: 0;
     z-index: 1; 
     left: 50%; 
-    top: 50%; 
     transform: translate(-50%, -50%); 
     background-color: #4CAF50; 
     color: white; 
@@ -52,6 +53,23 @@ div.toast {
     animation: fadeOut 2s forwards;
     pointer-events: none;
     z-index: 10;
+}
+
+div#toast.show {
+    visibility: visible;
+    animation: fadeInSlideUp 1s forwards;
+}
+
+div#alert_frame {
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border: 20px solid #ff9500;
+    box-sizing: border-box;
+    pointer-events: none;
 }
 
 div.hidden {
@@ -74,11 +92,6 @@ div.hidden {
         opacity: 0;
     }
     
-}
-
-div.toast.show {
-    visibility: visible;
-    animation: fadeInSlideUp 1s forwards;
 }
 
 @keyframes fadeInSlideUp {
