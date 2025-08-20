@@ -10,7 +10,7 @@
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 import sqlite3
 import uuid
 import os
@@ -36,11 +36,13 @@ SSLKEY = os.getenv('SSLKEY', 'key.pem')
 
 # 0.0.0.0 for all interfaces
 SERVERHOST = '0.0.0.0'
-# Change to 443 if using SSL/TLS
-SERVERPORT = 443 if USESSLTLS else 80
 
 # Rooms Configuration (can be set manually like this: ROOMS = ['Room 1', 'Room 2', 'Room 3'])
 ROOMS = os.getenv('ROOMS', '').split(',')
+# Minutes until a page should not be shown in the viewer
+PAGE_TIMEOUT = int(os.getenv('PAGE_TIMEOUT', 90))
+
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'
 
@@ -50,17 +52,18 @@ def validChildNumber(c):
     else:
         return False
 
-
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
-
 #########################################
 ####### END OF USER CONFIGURATION #######
 #########################################
 
+# Change to 443 if using SSL/TLS
+SERVERPORT = 443 if USESSLTLS else 80
 
-STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto']
+STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto', 'completed']
 
 ENUM_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
@@ -101,7 +104,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             days,remainder = divmod(raw_uptime.total_seconds(), 86400)
             hours,remainder = divmod(remainder, 3600)
             minutes,seconds = divmod(remainder, 60)
-            uptime = f'{int(days)} days, {str(int(hours)).zfill(2)}:{str(int(minutes)).zfill(2)}:{str(int(seconds)).zfill(2)}'
+            uptime = f'{int(days)}:{str(int(hours)).zfill(2)}:{str(int(minutes)).zfill(2)}:{str(int(seconds)).zfill(2)}'
             self.wfile.write(uptime.encode('utf-8'))
        
         elif self.path == '/api/status':
@@ -113,7 +116,8 @@ class SimpleServer(BaseHTTPRequestHandler):
         elif self.path == '/api/list':
             conn = sqlite3.connect('data/pager.db')
             c = conn.cursor()
-            c.execute("SELECT * FROM pager_list WHERE timestamp >= datetime('now', '-12 hour')")
+            c.execute("SELECT * FROM pager_list WHERE timestamp >= ?", \
+                      (datetime.strftime(datetime.now(UTC) - timedelta(minutes=PAGE_TIMEOUT), '%Y-%m-%d %H:%M:%S'),))
             rows = c.fetchall()
             conn.close()
 
@@ -134,7 +138,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                     page_time = row[5]
                 except:
                     page_time = ''
-                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "key": "{key}", "page_time": "{page_time}"}}'.encode('utf-8'))
+                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", \
+                                 "status": "{status}", "key": "{key}", "page_time": "{page_time}"}}'.encode('utf-8'))
                 if row != rows[-1]:
                     self.wfile.write(b',')
             self.wfile.write(b']')
@@ -176,7 +181,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                     page_time = row[5]
                 except:
                     page_time = ''
-                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "page_time": "{page_time}", "key": "{key}"}}'.encode('utf-8'))
+                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", \
+                                 "status": "{status}", "page_time": "{page_time}", "key": "{key}"}}'.encode('utf-8'))
                 if row != rows[-1]:
                     self.wfile.write(b',')
             self.wfile.write(b']')
@@ -231,7 +237,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                     page_time = row[5]
                 except:
                     page_time = ''
-                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", "status": "{status}", "page_time": "{page_time}" "key": "{key}"}}'.encode('utf-8'))
+                self.wfile.write(f'{{"child_number": "{child_number}", "room": "{room}", "timestamp": "{timestamp}", \
+                                 "status": "{status}", "page_time": "{page_time}" "key": "{key}"}}'.encode('utf-8'))
                 if row != rows[-1]:
                     self.wfile.write(b',')
             self.wfile.write(b']')
@@ -243,6 +250,8 @@ class SimpleServer(BaseHTTPRequestHandler):
                     self.path = '/index.html'
                 if self.path == '/control':
                     self.path = '/control.html'
+                if self.path == '/viewer':
+                    self.path = '/viewer.html'
 
                 #this prevents directory traversal outside of the html directory
                 if os.path.abspath(f'html{self.path}').startswith(os.path.abspath('html')):
@@ -367,11 +376,9 @@ class SimpleServer(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'404 Not Found')
 
+httpd = HTTPServer(server_address, SimpleServer)
 if USESSLTLS:
-    httpd = HTTPServer(server_address, SimpleServer)
     httpd.socket = ssl.wrap_socket(httpd.socket, certfile=SSLCERT, keyfile=SSLKEY, server_side=True)
-else:
-    httpd = HTTPServer(server_address, SimpleServer)
 
 def handle_sigterm(signum, frame):
     log('Received SIGTERM signal. Server shutting down...')
@@ -382,8 +389,6 @@ def handle_sigterm(signum, frame):
 def initialize_database():
     # Connect to the SQLite database (or create it)
     db = sqlite3.connect('data/pager.db')
-
-    # Create a cursor object
     cursor = db.cursor()
 
     # Create table
