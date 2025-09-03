@@ -2,6 +2,11 @@ body {
     font-family: 'Courier New', Courier, monospace;
     margin: 0;
     padding: 0;
+    background-color: #333;
+}
+
+div {
+    background-color: #ffffff;
 }
 
 #connection_status_container {
@@ -67,7 +72,8 @@ div#alert_frame {
     left: 0;
     width: 100vw;
     height: 100vh;
-    border: 20px solid #ff9500;
+    border: 30px solid #00fe00;
+    background-color: transparent;
     box-sizing: border-box;
     pointer-events: none;
 }

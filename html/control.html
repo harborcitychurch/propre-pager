@@ -39,7 +39,7 @@
         <h2>Parent Paging System Control</h2>
         
         <div id="settings_container">
-            <h3>ProPresenter Settings <span id="expand_settings" class="material-icons" onclick="toggleSettings()">remove</span></h3>
+            <h3><div id="auto_page_indicator" class="off"></div> ProPresenter Settings <span id="expand_settings" class="material-icons" onclick="toggleSettings()">remove</span></h3>
             <div class="settings"> 
                 ProPresenter Address: 
                 <input type="text" id="propresenter_address" placeholder="ProPresenter Address"> 
@@ -57,7 +57,6 @@
             </div>
             <div class="settings">
                 <button id="auto_page_button" onclick="toggleAutoPage()" class="inactive">Auto Page: OFF</button>
-                <div id="auto_page_indicator" class="off"></div>
             </div>
         </div>
         <div id="status_bar">

@@ -462,6 +462,7 @@ function getNewPages() {
             indicator.parentElement.className = "ok";
             msg = document.getElementById("host-server-status-text");
             msg.textContent = "Host server OK";
+            needAlert = false
 
             var pages = JSON.parse(xhr.responseText);
             //add new pages to the pageBucket
@@ -475,10 +476,12 @@ function getNewPages() {
                         pageBucket[pages[i].key].duration = DISPLAY_TIME;
                         pageBucket[pages[i].key].expires = true;
                     }
-                    var alert_sound = document.getElementById("notify_sound");
-                    alert_sound.play();
+                    if (pageBucket[pages[i].key].status === "queued") { needAlert = true; }
                 }
-                
+            }
+            if (needAlert) {
+                var alert_sound = document.getElementById("notify_sound");
+                alert_sound.play();
             }
         }
         if (xhr.readyState === XMLHttpRequest.DONE && xhr.status != 200) {
