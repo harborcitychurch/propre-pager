@@ -1,7 +1,7 @@
 //viewer.js
 TABLE_UPDATE_INTERVAL = 200; //.2 seconds
 PAGE_STALE_TIME = 10 * 60 * 1000; //10 minutes
-ALERT_FLASH_INTERVAL = 500; //500 milliseconds
+ALERT_FLASH_INTERVAL = 250; //500 milliseconds
 
 //Global variables
 var pageBucket = {};
