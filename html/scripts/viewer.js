@@ -265,6 +265,7 @@ function reportStatus(id, status) {
     pageBucket[id].status = status;
     var url = '/api/report'
     var xhr = new XMLHttpRequest();
+    console.log('Reporting status for ' + id + ': ' + status);
     xhr.open("PUT", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     jsonstring = '{ "key": "' + id + '", "status": "' + status + '" }';

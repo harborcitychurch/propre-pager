@@ -1,26 +1,17 @@
-#data files
-*.csv
-*.db
-
-#images
-*.jpg
-*.png
-*.ico
-*.svg
-
-#logs
-*.log
-
-#config files
-*.config
-
-.env
-
 #os stuff
 *.DS_Store
 DS_Store
 Thumbs.db
 
-#favicon setting files
-browserconfig.xml
-*.webmanifest
+#virtual environment
+venv/
+
+#environment variables
+.env
+
+#logs and db
+data/
+
+#favicon and logo files
+html/logos/
+!html/logos/README.txt

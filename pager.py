@@ -29,25 +29,33 @@ except:
 ####### BEGIN USER CONFIGURATION ########
 #########################################
 
+# Rooms Configuration (can be set manually like this: ROOMS = ['Room 1', 'Room 2', 'Room 3'])
+ROOMS = os.getenv('ROOMS', '').split(',')
+
+# Minutes until a page should should be ignored
+PAGE_TIMEOUT = int(os.getenv('PAGE_TIMEOUT', 90))
+
 # SSL/TLS Configuration
 USESSLTLS = os.getenv('USESSLTLS', 'false').lower() == 'true'
 SSLCERT = os.getenv('SSLCERT', 'cert.pem')
 SSLKEY = os.getenv('SSLKEY', 'key.pem')
 
-# 0.0.0.0 for all interfaces
-SERVERHOST = '0.0.0.0'
+# Server IP Address; use 0.0.0.0 for all connected interfaces
+SERVERHOST = os.getenv('SERVERHOST', '0.0.0.0')
+# Change to 443 if using SSL/TLS
+SERVERPORT = os.getenv('SERVERPORT', 443 if USESSLTLS else 80)
 
-# Rooms Configuration (can be set manually like this: ROOMS = ['Room 1', 'Room 2', 'Room 3'])
-ROOMS = os.getenv('ROOMS', '').split(',')
-# Minutes until a page should not be shown in the viewer
-PAGE_TIMEOUT = int(os.getenv('PAGE_TIMEOUT', 90))
-
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
-INVALIDCHILDNUMBER_MSG = 'Invalid child number. Must be a 3-digit number.'
+#Pager blacklist (child numbers that should not be allowed to page)
+BLACKLIST = os.getenv('BLACKLIST', '').split(',')
+
+# Message to return when an invalid child number is submitted
+INVALIDCHILDNUMBER_MSG = os.getenv('INVALIDCHILDNUMBER_MSG', 'Invalid child number. Must be a 3 letters/numbers.')
 
 def validChildNumber(c):
-    if len(c) == 3 and str(c).isdigit():
+    if len(c) == 3 and str(c).isalnum() and c not in BLACKLIST:
         return True
     else:
         return False
@@ -56,14 +64,8 @@ def validChildNumber(c):
 ####### END OF USER CONFIGURATION #######
 #########################################
 
-# Change to 443 if using SSL/TLS
-SERVERPORT = 443 if USESSLTLS else 80
-
 STATUS_CODES = ['queued', 'active', 'expired', 'failed', 'cancelled', 'auto', 'completed']
-
 ENUM_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
-
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
@@ -283,7 +285,7 @@ class SimpleServer(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
             data = json.loads(post_data)
-            child_number = str(data['child_number'])
+            child_number = str(data['child_number']).upper()
             room = str(data['room'])
             
             #check valid child_number

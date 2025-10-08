@@ -19,12 +19,12 @@
     </head>
     <body>
         <audio id="notify_sound" src="/notify.mp3" preload="auto"></audio>
-        <div id="header">
+        <div class="header">
             <div id="logo"><img src="/header_logo.png"></div>
             <div id="pager_form_container">
                 <form id="pager_form">
                     <label for="child_number">Child:</label>
-                    <input type="text" id="child_number" name="child_number" placeholder="000" pattern="[0-9]{3}" title="Child number must be 3 digits" required autocomplete="off"><br>
+                    <input type="text" id="child_number" name="child_number" placeholder="000" pattern="[0-9,a-z,A-Z]{3}" title="Child number must be 3 letters/numbers" required autocomplete="off"><br>
                     <label for="room">Room:</label>
                     <select id="room" name="room"></select><br>
                     <button type="submit" value="Submit">Queue</button>

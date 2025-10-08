@@ -113,3 +113,39 @@ function submitPage(e) {
     });
 }
 
+function updateRecents() {
+    var recentsContainer = document.getElementById('recents_container');
+    var table = document.getElementById('recents');
+    //clear the table except for the header row
+    while (table.rows.length > 1) {
+        table.deleteRow(1);
+    }
+    //ask api for pages
+    fetch('/api/recents')
+        .then(response => response.json())
+        .then(data => {
+            recentPages = data;
+            //keep only pages made in the last hour
+            var oneHourAgo = Date.now() - (60 * 60 * 1000);
+            recentPages = recentPages.filter(page => new Date(page.timestamp).getTime() > oneHourAgo);
+            if (recentPages.length > 0) {
+                recentsContainer.hidden = false;
+            }
+            else {
+                recentsContainer.hidden = true;
+            }
+            //add rows to the table
+            recentPages.forEach(page => {
+                var row = table.insertRow();
+                row.id = page.key;
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                var cell4 = row.insertCell(3);
+                cell1.textContent = new Date(page.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                cell2.textContent = page.room;
+                cell3.textContent = page.child_number;
+                cell4.textContent = page.status;
+            });
+        });
+}

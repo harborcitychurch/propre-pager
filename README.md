@@ -12,11 +12,31 @@
 ## Setting up ProPrePager
 - Create a new text file called `.env` and add any of the following values:
 ```
-ROOMS=Room 1,Room 2,Room 3
-USESSLTLS=False
-SSLCERT=cert.pem
-SSLKEY=key.pem
-LOG_LEVEL=DEBUG 
+# Rooms Configuration (comma separated)
+ROOMS = "Room1,Room2,Room3"
+
+# Minutes until a page should should be ignored
+PAGE_TIMEOUT = "90"
+
+# SSL/TLS Configuration
+USESSLTLS = "false"
+SSLCERT = "cert.pem"
+SSLKEY = "key.pem"
+
+# Server Configuration
+# Server IP Address; use 0.0.0.0 for all connected interfaces
+# Change port to 443 if using SSL/TLS
+SERVERHOST = "0.0.0.0"
+SERVERPORT = "80"
+
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL = "INFO"
+
+#Pager blacklist (child numbers that should not be allowed to be sent)
+BLACKLIST = "XXX,YYY,ZZZ"
+
+# Message to return when an invalid child number is submitted
+INVALIDCHILDNUMBER_MSG = "Invalid child number. Must be a 3 letters/numbers."
 ```
 - Save the file in the ProPrePager project directory
 - Put your `header_logo.png`, `footer_logo.png`, and `favicon.ico` files in `/html`
