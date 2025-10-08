@@ -1,4 +1,4 @@
-FROM alpine:3.19
+FROM python:3.12-alpine
 
 ARG VCS_REF
 ARG BUILD_DATE
@@ -21,7 +21,6 @@ COPY ./requirements.txt ./
 COPY ./.env ./
 
 RUN apk update && apk upgrade
-RUN apk add --no-cache python3
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 EXPOSE 80/tcp
