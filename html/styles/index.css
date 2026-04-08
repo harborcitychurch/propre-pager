@@ -115,18 +115,41 @@ form button:hover {
 }
 
 #recents_container {
+    display: block;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin: 0 auto;
-    width: 25%;
-    margin: 20px auto 50px auto;
+    width: fit-content;
+    max-width: 95vw;
+    margin: 100px auto 50px auto;
     padding: 20px;
+    overflow-x: auto;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
     background-color: #fff;
 }
+
+#recents {
+    width: max-content;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 4px;
+    background-color: #aaa;
+}
+.status-dot.status-queued    { background-color: #f59e0b; }
+.status-dot.status-active    { background-color: #3b82f6; }
+.status-dot.status-auto      { background-color: #8b5cf6; }
+.status-dot.status-completed { background-color: #22c55e; }
+.status-dot.status-expired   { background-color: #6b7280; }
+.status-dot.status-cancelled { background-color: #ef4444; }
+.status-dot.status-failed    { background-color: #dc2626; }
 
 @media screen and (max-height: 800px) {
     #logo {
@@ -148,21 +171,45 @@ form button:hover {
         margin: 0;
         padding: 0;
     }
+    h2, h3 {
+        text-align: center;
+    }
     #clock {
-        width: 100%;
+        width: min(92vw, 420px);
+        margin: 10px auto;
+        box-sizing: border-box;
     }
     #content {
         width: 100%;
-        margin: 0;
-        padding: 0;
+        margin: 0 auto;
+        padding: 0 12px;
+        box-sizing: border-box;
+        align-items: center;
     }
     #logo {
         margin: 50px auto 25px auto;
     }
     form {
-        width: 90%;
+        width: min(92vw, 420px);
+        margin: 0 auto;
+        box-sizing: border-box;
     }
     form input, form button, form select {
-        width: 75%;
+        width: 88%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #recents_container {
+        width: min(92vw, 420px);
+        max-width: min(92vw, 420px);
+        margin: 24px auto 100px auto;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+    #recents {
+        margin: 0 auto;
     }
 }

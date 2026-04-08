@@ -13,6 +13,7 @@ var connectedToProPresenter = false;
 var connectedToServer = true;
 var autoPageTimer = 0
 var lastSent;
+var controllerClientId = null;
 
 //initailize the page when everything is loaded
 window.onload = function () {
@@ -450,12 +451,17 @@ function warnDelete(button) {
 }
 
 function getNewPages() {
-    var url = '/api/list';
+    var params = new URLSearchParams();
+    params.set('role', 'controller');
+    if (controllerClientId) { params.set('client_id', controllerClientId); }
+    var url = '/api/list?' + params.toString();
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+            var cid = xhr.getResponseHeader('X-Client-Id');
+            if (cid) { controllerClientId = cid; }
             connectedToServer = true;
             indicator = document.getElementById("host-server-status");
             indicator.textContent = "check_circle";
