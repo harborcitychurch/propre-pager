@@ -62,3 +62,10 @@ Currently all parent page requests are moderated manually from the `/control` we
     - A green bar will indicate the webpage can communicate with ProPresenter
 2. When a page is queued, an alert sound will play
 3. Hit the `Send` button on the row with the number you wish to display
+
+# Viewer webpage (used with Proclaim and similar sofware)
+Open the `/viewer` webpage on your presentation PC or Mac and leave it in a place that the edge of the page is visible on a second monitor or behind your presentation software.
+When a page is submitted, the screen will flash with a green border until the page is resolved (copied or cancelled):
+1. Click the Copy Page icon in the page list to copy the request to your computer's clipboard
+2. Paste the information into your presentation software (scrolling message, stage message, etc)
+    - The copied pages are in this format: `123 Room Name 1      456 Room Name 2....`

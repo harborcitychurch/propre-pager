@@ -32,8 +32,8 @@ except:
 # Rooms Configuration (can be set manually like this: ROOMS = ['Room 1', 'Room 2', 'Room 3'])
 ROOMS = os.getenv('ROOMS', '').split(',')
 
-# Minutes until a page should should be ignored
-PAGE_TIMEOUT = int(os.getenv('PAGE_TIMEOUT', 90))
+# Minutes until a page should should be expired
+PAGE_TIMEOUT = int(os.getenv('PAGE_TIMEOUT', 10))
 
 # SSL/TLS Configuration
 USESSLTLS = os.getenv('USESSLTLS', 'false').lower() == 'true'
@@ -82,6 +82,8 @@ RECENTS_VERSION = 0
 RECENTS_UPDATED_AT_MS = int(now_utc().timestamp() * 1000)
 CLIENT_HEARTBEATS = {}
 CLIENT_TIMEOUT_MS = int(os.getenv('CLIENT_TIMEOUT_MS', 60000))
+LAST_PRUNE_MS = 0
+PRUNE_INTERVAL_MS = 8000
 
 
 def bump_recents_state():
@@ -124,6 +126,25 @@ def register_client(role, client_id=None):
     return client_id
 
 
+def prune_stale_pages():
+    global LAST_PRUNE_MS
+    if now_ms() - LAST_PRUNE_MS < PRUNE_INTERVAL_MS:
+        return
+    LAST_PRUNE_MS = now_ms()
+    threshold = datetime.strftime(now_utc() - timedelta(minutes=PAGE_TIMEOUT), '%Y-%m-%d %H:%M:%S')
+    conn = sqlite3.connect('data/pager.db')
+    c = conn.cursor()
+    c.execute(
+        "UPDATE pager_list SET status = 'expired' WHERE status IN ('queued', 'active', 'auto') AND timestamp < ?",
+        (threshold,)
+    )
+    if c.rowcount > 0:
+        conn.commit()
+        bump_recents_state()
+        log(f'Pruned {c.rowcount} stale page(s) to expired', 'DEBUG')
+    conn.close()
+
+
 def get_client_counts():
     purge_stale_clients()
     counts = {
@@ -151,22 +172,42 @@ def get_pager_counts():
         '''
         SELECT
             COUNT(*) AS total,
-            SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS queued,
-            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
-            SUM(CASE WHEN status = 'auto' THEN 1 ELSE 0 END) AS auto,
-            SUM(CASE WHEN status IN ('completed', 'expired', 'cancelled', 'failed') THEN 1 ELSE 0 END) AS finished
+            SUM(CASE WHEN status = 'queued'    THEN 1 ELSE 0 END) AS queued,
+            SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END) AS active,
+            SUM(CASE WHEN status = 'auto'      THEN 1 ELSE 0 END) AS auto,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
+            SUM(CASE WHEN status = 'expired'   THEN 1 ELSE 0 END) AS expired,
+            SUM(CASE WHEN status = 'failed'    THEN 1 ELSE 0 END) AS failed
         FROM pager_list
         '''
     )
     row = c.fetchone()
     conn.close()
 
+    queued    = int(row[1] or 0)
+    active    = int(row[2] or 0)
+    auto      = int(row[3] or 0)
+    completed = int(row[4] or 0)
+    cancelled = int(row[5] or 0)
+    expired   = int(row[6] or 0)
+    failed    = int(row[7] or 0)
+
     return {
         'total': int(row[0] or 0),
-        'queued': int(row[1] or 0),
-        'active': int(row[2] or 0),
-        'auto': int(row[3] or 0),
-        'finished': int(row[4] or 0),
+        'in_process': {
+            'total': queued + active + auto,
+            'queued': queued,
+            'active': active,
+            'auto':   auto,
+        },
+        'resolved': {
+            'total':     completed + cancelled + expired + failed,
+            'completed': completed,
+            'cancelled': cancelled,
+            'expired':   expired,
+            'failed':    failed,
+        },
     }
 
 server_address = (SERVERHOST, int(SERVERPORT))
@@ -244,6 +285,8 @@ class SimpleServer(BaseHTTPRequestHandler):
             role = query_components.get('role', [''])[0]
             client_id = query_components.get('client_id', [''])[0]
             registered_client_id = register_client(role, client_id) if role else None
+
+            prune_stale_pages()
 
             conn = sqlite3.connect('data/pager.db')
             c = conn.cursor()
