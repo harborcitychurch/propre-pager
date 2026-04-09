@@ -201,10 +201,10 @@ function updateRecents(forceFull=false) {
             }
 
             if (recentPages.length > 0) {
-                recentsContainer.hidden = false;
+                recentsContainer.classList.add('visible');
             }
             else {
-                recentsContainer.hidden = true;
+                recentsContainer.classList.remove('visible');
             }
             //add rows to the table
             recentPages.forEach(page => {
