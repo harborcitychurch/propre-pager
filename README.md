@@ -12,11 +12,31 @@
 ## Setting up ProPrePager
 - Create a new text file called `.env` and add any of the following values:
 ```
-ROOMS=Room 1,Room 2,Room 3
-USESSLTLS=False
-SSLCERT=cert.pem
-SSLKEY=key.pem
-LOG_LEVEL=DEBUG 
+# Rooms Configuration (comma separated)
+ROOMS = "Room1,Room2,Room3"
+
+# Minutes until a page should should be ignored
+PAGE_TIMEOUT = "90"
+
+# SSL/TLS Configuration
+USESSLTLS = "false"
+SSLCERT = "cert.pem"
+SSLKEY = "key.pem"
+
+# Server Configuration
+# Server IP Address; use 0.0.0.0 for all connected interfaces
+# Change port to 443 if using SSL/TLS
+SERVERHOST = "0.0.0.0"
+SERVERPORT = "80"
+
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL = "INFO"
+
+#Pager blacklist (child numbers that should not be allowed to be sent)
+BLACKLIST = "XXX,YYY,ZZZ"
+
+# Message to return when an invalid child number is submitted
+INVALIDCHILDNUMBER_MSG = "Invalid child number. Must be a 3 letters/numbers."
 ```
 - Save the file in the ProPrePager project directory
 - Put your `header_logo.png`, `footer_logo.png`, and `favicon.ico` files in `/html`
@@ -42,3 +62,10 @@ Currently all parent page requests are moderated manually from the `/control` we
     - A green bar will indicate the webpage can communicate with ProPresenter
 2. When a page is queued, an alert sound will play
 3. Hit the `Send` button on the row with the number you wish to display
+
+# Viewer webpage (used with Proclaim and similar sofware)
+Open the `/viewer` webpage on your presentation PC or Mac and leave it in a place that the edge of the page is visible on a second monitor or behind your presentation software.
+When a page is submitted, the screen will flash with a green border until the page is resolved (copied or cancelled):
+1. Click the Copy Page icon in the page list to copy the request to your computer's clipboard
+2. Paste the information into your presentation software (scrolling message, stage message, etc)
+    - The copied pages are in this format: `123 Room Name 1      456 Room Name 2....`

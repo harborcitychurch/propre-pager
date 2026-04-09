@@ -6,6 +6,7 @@ ALERT_FLASH_INTERVAL = 250; //500 milliseconds
 //Global variables
 var pageBucket = {};
 var flash_alert = false;
+var viewerClientId = null;
 
 //initailize the page when everything is loaded
 window.onload = function () {
@@ -224,12 +225,17 @@ function copyRow(button) {
 }
 
 function getNewPages() {
-    var url = '/api/list';
+    var params = new URLSearchParams();
+    params.set('role', 'viewer');
+    if (viewerClientId) { params.set('client_id', viewerClientId); }
+    var url = '/api/list?' + params.toString();
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+            var cid = xhr.getResponseHeader('X-Client-Id');
+            if (cid) { viewerClientId = cid; }
             connectedToServer = true;
             indicator = document.getElementById("host-server-status");
             indicator.textContent = "check_circle";
@@ -265,6 +271,7 @@ function reportStatus(id, status) {
     pageBucket[id].status = status;
     var url = '/api/report'
     var xhr = new XMLHttpRequest();
+    console.log('Reporting status for ' + id + ': ' + status);
     xhr.open("PUT", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     jsonstring = '{ "key": "' + id + '", "status": "' + status + '" }';

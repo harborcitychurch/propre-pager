@@ -1,12 +1,16 @@
 window.onload = function() {
-    updateRooms();
     form = document.getElementById('pager_form');
     form.addEventListener('submit', e => submitPage(e));
+    form.elements.room.addEventListener('change', () => updateRecents(true));
 
     warning_container = document.getElementById('connection_status_container');
     warning_container.innerHTML = WARNING_ICON_SVG + warning_container.innerHTML;
 
-    setInterval(checkServer, 10000);
+    updateRooms().then(() => {
+        updateRecents(true);
+        setInterval(updateRecents, 9000);
+    });
+    setInterval(checkServer, 20000);
 }
 
 WARNING_ICON_SVG = `<svg fill="#FF0000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -27,6 +31,13 @@ WARNING_ICON_SVG = `<svg fill="#FF0000" version="1.1" id="Capa_1" xmlns="http://
 </svg>`;
 
 recentPages = [];
+recentsVersion = null;
+recentsSince = null;
+pagerClientId = null;
+
+function parseServerUtcTimestamp(timestamp) {
+    return new Date(timestamp.replace(' ', 'T') + 'Z');
+}
 
 //recall room index from local storage
 function recallRoom() {
@@ -47,7 +58,7 @@ function storeRoom() {
 }
 
 function updateRooms() {
-    fetch('/api/rooms')
+    return fetch('/api/rooms')
         .then(response => response.json())
         .then(data => {
             const select = document.querySelector('select[name="room"]');
@@ -65,9 +76,19 @@ function updateRooms() {
 function checkServer() {
     statusIcon = document.getElementById('connection_status_container');
     try {
-        fetch('/api/now')
+        var params = new URLSearchParams();
+        params.set('role', 'pager');
+        if (pagerClientId) {
+            params.set('client_id', pagerClientId);
+        }
+
+        fetch(`/api/ping?${params.toString()}`, { cache: 'no-store' })
             .then(response => {
-                if (response.status === 200) {
+                var clientId = response.headers.get('X-Client-Id');
+                if (clientId) {
+                    pagerClientId = clientId;
+                }
+                if (response.status === 204) {
                     statusIcon.className = 'status-ok';
                     return;
                 }
@@ -113,3 +134,94 @@ function submitPage(e) {
     });
 }
 
+function updateRecents(forceFull=false) {
+    var recentsContainer = document.getElementById('recents_container');
+    var table = document.getElementById('recents');
+
+    // ask api for pages, including cache hint parameters.
+    var params = new URLSearchParams();
+    params.set('minutes', '30');
+    params.set('room', document.getElementById('room').value);
+    if (forceFull) {
+        params.set('full', '1');
+    }
+    if (!forceFull && recentsVersion !== null) {
+        params.set('version', recentsVersion);
+    }
+    if (!forceFull && recentsSince !== null) {
+        params.set('since', recentsSince);
+    }
+
+    var endpoint = `/api/recents?${params.toString()}`;
+    fetch(endpoint)
+        .then(response => {
+            var responseVersion = response.headers.get('X-Recents-Version');
+            var responseUpdatedAt = response.headers.get('X-Recents-Updated-At-Ms');
+
+            if (responseVersion !== null) {
+                recentsVersion = parseInt(responseVersion);
+            }
+            if (responseUpdatedAt !== null) {
+                recentsSince = parseInt(responseUpdatedAt);
+            }
+
+            if (response.status === 304) {
+                return null;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data === null) {
+                return;
+            }
+
+            if (!Array.isArray(data)) {
+                if (data.version !== undefined) {
+                    recentsVersion = data.version;
+                }
+                if (data.updated_at_ms !== undefined) {
+                    recentsSince = data.updated_at_ms;
+                }
+
+                if (data.changed === false) {
+                    return;
+                }
+
+                recentPages = data.items || [];
+            }
+            else {
+                recentPages = data;
+            }
+
+            recentPages = recentPages.sort((a, b) => parseServerUtcTimestamp(b.timestamp) - parseServerUtcTimestamp(a.timestamp));
+
+            //clear the table except for the header row
+            while (table.rows.length > 1) {
+                table.deleteRow(1);
+            }
+
+            if (recentPages.length > 0) {
+                recentsContainer.classList.add('visible');
+            }
+            else {
+                recentsContainer.classList.remove('visible');
+            }
+            //add rows to the table
+            recentPages.forEach(page => {
+                var row = table.insertRow();
+                row.id = page.key;
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                var cell4 = row.insertCell(3);
+                cell1.textContent = page.child_number;
+                cell2.textContent = page.room;
+                cell3.textContent = parseServerUtcTimestamp(page.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                var dot = document.createElement('span');
+                dot.className = 'status-dot status-' + page.status;
+                dot.title = page.status;
+                cell4.appendChild(dot);
+                cell4.appendChild(document.createTextNode(' ' + page.status));
+            });
+        });
+}
